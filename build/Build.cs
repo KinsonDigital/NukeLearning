@@ -41,14 +41,16 @@ class Build : NukeBuild
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
 
     [Solution] readonly Solution Solution;
+    [PathExecutable] readonly Tool Git;
 
-    Target Clean => _ => _
-        .Before(RestoreMainProject)
+    Target SetUbuntuPermissions => _ => _
         .Executes(() =>
         {
+            Git("update-index --chmod=+x build.cmd");
         });
 
     Target RestoreMainProject => _ => _
+        .DependsOn(SetUbuntuPermissions)
         .Executes(() =>
         {
             DotNetRestore(s => s
@@ -56,6 +58,7 @@ class Build : NukeBuild
         });
 
     Target RestoreTestProject => _ => _
+        .DependsOn(SetUbuntuPermissions)
         .Executes(() =>
         {
             DotNetRestore(s => s

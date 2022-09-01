@@ -72,12 +72,12 @@
           "items": {
             "type": "string",
             "enum": [
-              "Clean",
               "CompileMainProject",
               "CompileTestProject",
               "RestoreMainProject",
               "RestoreTestProject",
-              "RunUnitTests"
+              "RunUnitTests",
+              "SetUbuntuPermissions"
             ]
           }
         },
@@ -91,12 +91,12 @@
           "items": {
             "type": "string",
             "enum": [
-              "Clean",
               "CompileMainProject",
               "CompileTestProject",
               "RestoreMainProject",
               "RestoreTestProject",
-              "RunUnitTests"
+              "RunUnitTests",
+              "SetUbuntuPermissions"
             ]
           }
         },
