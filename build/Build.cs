@@ -22,7 +22,8 @@ using static Nuke.Common.IO.PathConstruction;
     "Build And Test",
     GitHubActionsImage.UbuntuLatest,
     On = new [] { GitHubActionsTrigger.Push },
-    InvokedTargets = new[] { nameof(CompileMainProject)})]
+    InvokedTargets = new[] { nameof(CompileMainProject)},
+    EnableGitHubToken = true)]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
