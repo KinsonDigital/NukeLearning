@@ -20,7 +20,7 @@ using static Nuke.Common.IO.PathConstruction;
 
 [GitHubActions(
     "Build And Test",
-    GitHubActionsImage.WindowsLatest,
+    GitHubActionsImage.UbuntuLatest,
     On = new [] { GitHubActionsTrigger.Push },
     InvokedTargets = new[] { nameof(CompileMainProject)},
     EnableGitHubToken = true)]
