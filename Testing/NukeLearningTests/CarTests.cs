@@ -16,6 +16,6 @@ public class CarTests
         car.TurnOn();
 
         // Assert
-        mockLogger.Verify(m => m.WriteLine("Car Turned On."));
+        mockLogger.Verify(m => m.WriteLine("Car Turned Off."));
     }
 }

@@ -73,12 +73,17 @@
             "type": "string",
             "enum": [
               "Clean",
-              "Compile",
-              "MyTarget",
-              "Print",
-              "Restore"
+              "CompileMainProject",
+              "CompileTestProject",
+              "RestoreMainProject",
+              "RestoreTestProject",
+              "RunUnitTests"
             ]
           }
+        },
+        "Solution": {
+          "type": "string",
+          "description": "Path to a solution file that is automatically loaded"
         },
         "Target": {
           "type": "array",
@@ -87,10 +92,11 @@
             "type": "string",
             "enum": [
               "Clean",
-              "Compile",
-              "MyTarget",
-              "Print",
-              "Restore"
+              "CompileMainProject",
+              "CompileTestProject",
+              "RestoreMainProject",
+              "RestoreTestProject",
+              "RunUnitTests"
             ]
           }
         },
