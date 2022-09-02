@@ -31,7 +31,7 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
-      - name: Run './build.cmd CompileMainProject'
-        run: ./build.cmd CompileMainProject
+      - name: Run './build.cmd BuildStart'
+        run: ./build.cmd BuildStart
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

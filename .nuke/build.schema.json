@@ -72,12 +72,12 @@
           "items": {
             "type": "string",
             "enum": [
+              "BuildStart",
+              "CompileAllProjects",
               "CompileMainProject",
               "CompileTestProject",
-              "RestoreMainProject",
-              "RestoreTestProject",
-              "RunUnitTests",
-              "SetUbuntuPermissions"
+              "RestoreSolution",
+              "RunUnitTests"
             ]
           }
         },
@@ -91,12 +91,12 @@
           "items": {
             "type": "string",
             "enum": [
+              "BuildStart",
+              "CompileAllProjects",
               "CompileMainProject",
               "CompileTestProject",
-              "RestoreMainProject",
-              "RestoreTestProject",
-              "RunUnitTests",
-              "SetUbuntuPermissions"
+              "RestoreSolution",
+              "RunUnitTests"
             ]
           }
         },
