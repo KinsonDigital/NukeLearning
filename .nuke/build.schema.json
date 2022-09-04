@@ -72,12 +72,16 @@
           "items": {
             "type": "string",
             "enum": [
+              "BuildAllProjects",
+              "BuildMainProject",
               "BuildStart",
-              "CompileAllProjects",
-              "CompileMainProject",
-              "CompileTestProject",
+              "BuildStatusCheck",
+              "BuildTestProject",
+              "CheckTag",
               "RestoreSolution",
-              "RunUnitTests"
+              "RunAllUnitTests",
+              "RunUnitTests",
+              "UnitTestStatusCheck"
             ]
           }
         },
@@ -91,12 +95,16 @@
           "items": {
             "type": "string",
             "enum": [
+              "BuildAllProjects",
+              "BuildMainProject",
               "BuildStart",
-              "CompileAllProjects",
-              "CompileMainProject",
-              "CompileTestProject",
+              "BuildStatusCheck",
+              "BuildTestProject",
+              "CheckTag",
               "RestoreSolution",
-              "RunUnitTests"
+              "RunAllUnitTests",
+              "RunUnitTests",
+              "UnitTestStatusCheck"
             ]
           }
         },
