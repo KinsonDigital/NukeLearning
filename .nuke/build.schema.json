@@ -74,14 +74,16 @@
             "enum": [
               "BuildAllProjects",
               "BuildMainProject",
-              "BuildStart",
               "BuildStatusCheck",
               "BuildTestProject",
               "CheckTag",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunUnitTests",
-              "UnitTestStatusCheck"
+              "Start",
+              "StartPreviewRelease",
+              "UnitTestStatusCheck",
+              "ValidateGitHubRepo"
             ]
           }
         },
@@ -97,14 +99,16 @@
             "enum": [
               "BuildAllProjects",
               "BuildMainProject",
-              "BuildStart",
               "BuildStatusCheck",
               "BuildTestProject",
               "CheckTag",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunUnitTests",
-              "UnitTestStatusCheck"
+              "Start",
+              "StartPreviewRelease",
+              "UnitTestStatusCheck",
+              "ValidateGitHubRepo"
             ]
           }
         },
