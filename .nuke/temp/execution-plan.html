@@ -198,45 +198,197 @@ window.addEventListener("load",function(){e.contentLoaded()},!1)}).call(e,n(9))}
 
     <script>
 $(document).ready(function() {
-  $("#Restore").addClass('highlight');
-  $("#Compile").addClass('highlight');
-  $("#Clean").hover(
+  $("#BuildStart").addClass('highlight');
+  $("#RestoreSolution").addClass('highlight');
+  $("#BuildStart").hover(
     function() {
-        $("#Clean").removeClass('highlight');
-        $("#Restore").removeClass('highlight');
-        $("#Compile").removeClass('highlight');
-        $("#Clean").addClass('highlight');
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
     },
     function() {
-        $("#Clean").removeClass('highlight');
-        $("#Restore").addClass('highlight');
-        $("#Compile").addClass('highlight');
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
     });
-  $("#Restore").hover(
+  $("#RestoreSolution").hover(
     function() {
-        $("#Clean").removeClass('highlight');
-        $("#Restore").removeClass('highlight');
-        $("#Compile").removeClass('highlight');
-        $("#Restore").addClass('highlight');
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
     },
     function() {
-        $("#Restore").removeClass('highlight');
-        $("#Restore").addClass('highlight');
-        $("#Compile").addClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
     });
-  $("#Compile").hover(
+  $("#BuildAllProjects").hover(
     function() {
-        $("#Clean").removeClass('highlight');
-        $("#Restore").removeClass('highlight');
-        $("#Compile").removeClass('highlight');
-        $("#Restore").addClass('highlight');
-        $("#Compile").addClass('highlight');
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+        $("#BuildAllProjects").addClass('highlight');
+        $("#BuildTestProject").addClass('highlight');
+        $("#BuildMainProject").addClass('highlight');
     },
     function() {
-        $("#Restore").removeClass('highlight');
-        $("#Compile").removeClass('highlight');
-        $("#Restore").addClass('highlight');
-        $("#Compile").addClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+    });
+  $("#BuildStatusCheck").hover(
+    function() {
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#BuildStatusCheck").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+        $("#BuildAllProjects").addClass('highlight');
+        $("#BuildTestProject").addClass('highlight');
+        $("#BuildMainProject").addClass('highlight');
+    },
+    function() {
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+    });
+  $("#RunAllUnitTests").hover(
+    function() {
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+        $("#RunAllUnitTests").addClass('highlight');
+        $("#RunUnitTests").addClass('highlight');
+    },
+    function() {
+        $("#RestoreSolution").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+    });
+  $("#UnitTestStatusCheck").hover(
+    function() {
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+        $("#RunAllUnitTests").addClass('highlight');
+        $("#RunUnitTests").addClass('highlight');
+    },
+    function() {
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+    });
+  $("#BuildMainProject").hover(
+    function() {
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#BuildMainProject").addClass('highlight');
+    },
+    function() {
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+    });
+  $("#BuildTestProject").hover(
+    function() {
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#BuildTestProject").addClass('highlight');
+    },
+    function() {
+        $("#BuildTestProject").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+    });
+  $("#RunUnitTests").hover(
+    function() {
+        $("#BuildStart").removeClass('highlight');
+        $("#RestoreSolution").removeClass('highlight');
+        $("#BuildAllProjects").removeClass('highlight');
+        $("#BuildStatusCheck").removeClass('highlight');
+        $("#RunAllUnitTests").removeClass('highlight');
+        $("#UnitTestStatusCheck").removeClass('highlight');
+        $("#BuildMainProject").removeClass('highlight');
+        $("#BuildTestProject").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
+        $("#RunUnitTests").addClass('highlight');
+    },
+    function() {
+        $("#RestoreSolution").removeClass('highlight');
+        $("#RunUnitTests").removeClass('highlight');
+        $("#BuildStart").addClass('highlight');
+        $("#RestoreSolution").addClass('highlight');
     });
 
 });
@@ -282,9 +434,21 @@ $(document).ready(function() {
     
     <div class="mermaid">
 graph LR
-Clean -.-> Restore
-Restore --> Compile
-Compile
+BuildStart ==> RestoreSolution
+class BuildStart unlisted
+RestoreSolution --> BuildAllProjects
+RestoreSolution --> RunAllUnitTests
+RestoreSolution --> RunUnitTests
+BuildAllProjects ==> BuildMainProject
+BuildAllProjects ==> BuildTestProject
+BuildStatusCheck -.-> RestoreSolution
+BuildStatusCheck ==> BuildAllProjects
+RunAllUnitTests ==> RunUnitTests
+UnitTestStatusCheck -.-> RestoreSolution
+UnitTestStatusCheck ==> RunAllUnitTests
+BuildMainProject -.-> RunUnitTests
+BuildTestProject -.-> RunUnitTests
+RunUnitTests
 
 
 linkStyle default interpolate basis

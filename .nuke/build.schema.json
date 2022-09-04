@@ -72,13 +72,22 @@
           "items": {
             "type": "string",
             "enum": [
-              "Clean",
-              "Compile",
-              "MyTarget",
-              "Print",
-              "Restore"
+              "BuildAllProjects",
+              "BuildMainProject",
+              "BuildStart",
+              "BuildStatusCheck",
+              "BuildTestProject",
+              "CheckTag",
+              "RestoreSolution",
+              "RunAllUnitTests",
+              "RunUnitTests",
+              "UnitTestStatusCheck"
             ]
           }
+        },
+        "Solution": {
+          "type": "string",
+          "description": "Path to a solution file that is automatically loaded"
         },
         "Target": {
           "type": "array",
@@ -86,11 +95,16 @@
           "items": {
             "type": "string",
             "enum": [
-              "Clean",
-              "Compile",
-              "MyTarget",
-              "Print",
-              "Restore"
+              "BuildAllProjects",
+              "BuildMainProject",
+              "BuildStart",
+              "BuildStatusCheck",
+              "BuildTestProject",
+              "CheckTag",
+              "RestoreSolution",
+              "RunAllUnitTests",
+              "RunUnitTests",
+              "UnitTestStatusCheck"
             ]
           }
         },
