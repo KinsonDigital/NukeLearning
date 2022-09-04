@@ -1,11 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using GlobExpressions;
+using JetBrains.Annotations;
+using Nuke.Common;
+using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
+using Nuke.Common.Tools.GitHub;
+using Octokit;
+using Serilog;
 
-namespace DefaultNamespace;
+namespace NukeLearningCICD;
 
 public static class ExtensionMethods
 {
@@ -13,45 +21,92 @@ public static class ExtensionMethods
     private const char MatchNumbers = '#';
     private const char MatchAnything = '*';
 
-    public static bool IsCorrectBranch(this GitRepository repository, string branchPattern)
+    public static bool IsOnCorrectBranch(this GitRepository repo, string branchPattern)
     {
-        if (repository.Branch is null)
+        if (repo.Branch is null)
         {
             return false;
         }
 
-        // var branch = "release/v11.22.33-prview.44";
-        // var pattern = "release/v#.#.#-prev*.#";
-        //
-        // var result = EqualTo(branch, pattern);
-
-
-        var otherResult= EqualTo(repository.Branch, branchPattern);
-        return EqualTo(repository.Branch, branchPattern);
-
-        // return Glob.IsMatch(currentBranch, branchPattern);
+        return EqualTo(repo.Branch, branchPattern);
     }
 
-    public static bool IsReleaseBranch(this GitRepository repo)
+    public static bool IsOnFeatureBranch(this GitRepository repo)
     {
-        return IsCorrectBranch(repo, "release/v*.*.*");
+        return IsOnCorrectBranch(repo, "feature/#-*");
     }
 
-    private static bool ValidateNumbers(string value, string pattern)
+    public static bool IsOnPreviewReleaseBranch(this GitRepository repo)
     {
-        if (string.IsNullOrEmpty(value) || value.Contains('#') is false)
+        return IsOnCorrectBranch(repo, "preview/v*.*.*");
+    }
+
+    public static bool IsOnPreviewReleaseBranch(this GitRepository repo, string messageOnFalse)
+    {
+        if (string.IsNullOrEmpty(messageOnFalse))
         {
-            return true;
+            Assert.Fail($"The parameter '{nameof(messageOnFalse)}' cannot be null or empty when checking if currently on a preview release branch.");
         }
 
-        var sectionsToRemove = value.Split('#');
+        var result = IsOnCorrectBranch(repo, "preview/v#.#.#-preview.#");
 
-        var leftovers = string.Empty;
-
-        foreach (var section in sectionsToRemove)
+        if (string.IsNullOrEmpty(messageOnFalse) is false && result is false)
         {
-            leftovers += value.Replace(section, string.Empty);
+            Log.Error(messageOnFalse);
         }
+
+        return result;
+    }
+
+    public static bool IsOnReleaseBranch(this GitRepository repo)
+    {
+        return IsOnCorrectBranch(repo, "release/v*.*.*");
+    }
+
+    public static bool IsOnPreviewFeatureBranch(this GitRepository repo)
+    {
+        return IsOnCorrectBranch(repo, "preview/feature/#-*");
+    }
+
+    public static bool IsOnHotFixBranch(this GitRepository repo)
+    {
+        return IsOnCorrectBranch(repo, "feature/#-*");
+    }
+
+    public static bool IsOnHotFixBranch(this GitRepository repo, string messageOnFalse)
+    {
+        if (string.IsNullOrEmpty(messageOnFalse))
+        {
+            Assert.Fail($"The parameter '{nameof(messageOnFalse)}' cannot be null or empty when checking if currently on a hot fix branch.");
+        }
+
+        var result = IsOnCorrectBranch(repo, "feature/#-*");
+
+        if (string.IsNullOrEmpty(messageOnFalse) is false && result is false)
+        {
+            Log.Error(messageOnFalse);
+        }
+
+        return result;
+    }
+
+    // public static ITargetDefinition IsCorrectGitHubOrg(this ITargetDefinition targetDefinition)
+    // {
+    //     if (CICD.GitHubOrganization != "KinsonDigital")
+    //     {
+    //         var failMsg = "The github organization must be 'KinsonDigital'.";
+    //         failMsg += $"{Environment.NewLine}Verify that the '{nameof(CICD)}.{nameof(CICD.GitHubOrganization)}' static property is set correctly.";
+    //
+    //         Assert.Fail(failMsg);
+    //     }
+    //
+    //     return targetDefinition;
+    // }
+
+    public static async Task<bool> TagExists(this IRepositoriesClient repoClient, string tag)
+    {
+
+        // var tags = await repoClient.GetAllTags(GitHubTasks.GetGitHubOwner(), GitHubTasks.GetGitHubName());
 
         return false;
     }
@@ -65,7 +120,7 @@ public static class ExtensionMethods
     /// <remarks>
     ///     The comparison is case sensitive.
     /// </remarks>
-    public static bool EqualTo(string branch, string value)
+    private static bool EqualTo(string branch, string value)
     {
         value = string.IsNullOrEmpty(value) ? string.Empty : value;
 
