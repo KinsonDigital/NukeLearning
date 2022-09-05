@@ -8,7 +8,6 @@
       "properties": {
         "Configuration": {
           "type": "string",
-          "description": "Configuration to build - Default is 'Debug' (local) or 'Release' (server)",
           "enum": [
             "Debug",
             "Release"
@@ -47,6 +46,10 @@
           "type": "boolean",
           "description": "Disables displaying the NUKE logo"
         },
+        "NugetApiKey": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
         "Partition": {
           "type": "string",
           "description": "Partition to use on CI"
@@ -76,11 +79,14 @@
               "BuildMainProject",
               "BuildStatusCheck",
               "BuildTestProject",
+              "CreateNugetPackage",
+              "DebugTarget",
+              "PublishNugetPackage",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
               "RunUnitTests",
-              "Start",
+              "SendTweetAnnouncement",
               "UnitTestStatusCheck"
             ]
           }
@@ -99,14 +105,33 @@
               "BuildMainProject",
               "BuildStatusCheck",
               "BuildTestProject",
+              "CreateNugetPackage",
+              "DebugTarget",
+              "PublishNugetPackage",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
               "RunUnitTests",
-              "Start",
+              "SendTweetAnnouncement",
               "UnitTestStatusCheck"
             ]
           }
+        },
+        "TwitterAccessToken": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "TwitterAccessTokenSecret": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "TwitterConsumerKey": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "TwitterConsumerSecret": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
         "Verbosity": {
           "type": "string",

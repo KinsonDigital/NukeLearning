@@ -1,24 +1,13 @@
 using Nuke.Common;
-using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
-using Nuke.Common.Tools.GitHub;
-using Octokit;
-using Octokit.Internal;
-using Serilog;
-using Project = Nuke.Common.ProjectModel.Project;
+using NukeParameter = Nuke.Common.ParameterAttribute;
 
 namespace NukeLearningCICD;
 
 // TODO: Add editorconfig to build project and tweak until it fits
 
-// [GitHubActions(
-//     "Build And Test",
-//     GitHubActionsImage.UbuntuLatest,
-//     On = new [] { GitHubActionsTrigger.Push },
-//     InvokedTargets = new[] { nameof(Start)},
-//     EnableGitHubToken = true)]
 public partial class CICD : NukeBuild
 {
     const string ProjFileExt = "csproj";
@@ -28,41 +17,31 @@ public partial class CICD : NukeBuild
     const string MainProjFileName = $"{MainProjName}.{ProjFileExt}";
     const string TestProjName = $"{MainProjName}{TestProjPostfix}";
     const string TestProjFileName = $"{TestProjName}.{ProjFileExt}";
+    const string NugetOrgSource = "https://api.nuget.org/v3/index.json";
 
     public static int Main()
-    {
-        // var tokenService = new TokenService();
-        // var credentials = new Credentials(tokenService.GetToken());
-        // GitHubTasks.GitHubClient = new GitHubClient(
-        //     new ProductHeaderValue(nameof(NukeBuild)),
-        //     new InMemoryCredentialStore(credentials));
-
-        return Execute<CICD>(x => x.Start);
-    }
-
-    /* TODO: This cannot always be release if it is not a local build
-        The only time a release build will exist is if it is being ran on the server and it is the production branch.
-     */
-    [Nuke.Common.Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
-    readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
+        => Execute<CICD>(x => x.BuildAllProjects, x => x.RunAllUnitTests);
 
     [Solution] readonly Solution Solution;
     [GitRepository] readonly GitRepository Repo;
 
-    static AbsolutePath SolutionRootDir => RootDirectory / MainProjName;
-    static AbsolutePath TestingRootDir => RootDirectory / TestingDirName;
-    static AbsolutePath MainProjPath => SolutionRootDir / MainProjFileName;
-    static AbsolutePath TestProjPath => TestingRootDir / TestProjName / TestProjFileName;
+    [Parameter(List = false)]
+    static readonly Configuration Configuration = GetBuildConfig();
+    [Parameter] [Secret] readonly string NugetApiKey;
+    [Parameter] [Secret] readonly string TwitterConsumerKey;
+    [Parameter] [Secret] readonly string TwitterConsumerSecret;
+    [Parameter] [Secret] readonly string TwitterAccessToken;
+    [Parameter] [Secret] readonly string TwitterAccessTokenSecret;
 
-    Target Start => _ => _
-        // .OnlyWhenStatic(() => !string.IsNullOrEmpty(Repo.Branch))
-        .Executes(() =>
-        {
-            Log.Information("Start() Target Executed");
-            Log.Information("Is Null: {Value}", GitHubActions.Instance is null);
-            // Log.Information("GitHub Owner: {Value}", Repo.GetGitHubOwner());
-            // Log.Information("GitHub Name: {Value}", Repo.GetGitHubName());
-            // Log.Information("Is Preview Feature Branch: {Value}", Repo.IsOnPreviewFeatureBranch());
-            // Log.Information("Is Release Branch: {Value}", Repo.IsOnReleaseBranch());
-        });
+    static AbsolutePath TestingRootDir => RootDirectory / TestingDirName;
+    static AbsolutePath MainProjPath => RootDirectory / MainProjName / MainProjFileName;
+    static AbsolutePath TestProjPath => TestingRootDir / TestProjName / TestProjFileName;
+    static AbsolutePath NugetOutputPath => RootDirectory / "Artifacts";
+
+    static Configuration GetBuildConfig()
+    {
+        var repo = GitRepository.FromLocalDirectory(RootDirectory);
+
+        return repo.Branch.IsMasterBranch() ? Configuration.Release : Configuration.Debug;
+    }
 }

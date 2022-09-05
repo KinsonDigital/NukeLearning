@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.ProjectModel;

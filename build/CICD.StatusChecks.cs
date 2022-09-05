@@ -1,7 +1,5 @@
-using System;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.Tools.GitHub;
 using Serilog;
 
 namespace NukeLearningCICD;
@@ -34,29 +32,6 @@ public partial class CICD // StatusChecks
 
             Log.Information("Branch Is Valid!!");
         });
-
-    void PrintPullRequestInfo()
-    {
-        // If the build is on the server and the GitHubActions object exists
-        if (IsServerBuild && GitHubActions.Instance is not null)
-        {
-            var gitHub = GitHubActions.Instance;
-
-            Log.Information("Is Server Build: {Value}", IsServerBuild);
-            Log.Information("Repository Owner: {Value}", gitHub.RepositoryOwner);
-            Log.Information("Status Check Invoked By: {Value}", gitHub.Actor);
-            Log.Information("Is Local Build: {Value}", IsLocalBuild);
-            Log.Information("Is PR: {Value}", gitHub.IsPullRequest);
-            Log.Information("Ref: {Value}", gitHub.Ref);
-            Log.Information("Source Branch: {Value}", gitHub.HeadRef);
-            Log.Information("Destination Branch: {Value}", gitHub.BaseRef);
-        }
-        else
-        {
-            Log.Information("Is Server Build: {Value}", IsServerBuild);
-            Log.Information("Local Build.  No pull request info to print.");
-        }
-    }
 
     void PrintValidBranchesForManuallyExecution()
     {
@@ -144,9 +119,17 @@ public partial class CICD // StatusChecks
     }
 
     // TODO: Create status check to verify that the number in a branch is a real issue number
-        // TODO: The issue number must be linked to a pull request
-        // TODO: All pull requests linked must not be merged.  (Some open PR are ok.  Just not all closed)
+        // The issue number must be linked to a pull request
+        // All pull requests linked must not be merged.  (Some open PR are ok.  Just not all closed)
+
+    // TODO: Create status check to verify that an open milestone exists with a name that matches the current version pulled from the csproj
 
     // TODO: Create status check for release branches only where the milestone must have all of its issues closed and PR's merged/closed
         // 👉🏼https://github.com/nuke-build/nuke/blob/develop/build/Build.GitFlow.cs
+
+    // TODO: Add status check to check that a nuget package of a particular version does not already exist
+        // This is for preview and production releases
+
+    // TODO: Create target status check to check that the release notes exist
+        // This will be for preview and production releases
 }
