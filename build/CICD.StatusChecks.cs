@@ -8,7 +8,6 @@ namespace NukeLearningCICD;
 
 public partial class CICD // StatusChecks
 {
-    // TODO: Check
     Target BuildStatusCheck => _ => _
         .Before(BuildAllProjects, BuildMainProject, BuildTestProject)
         .Triggers(BuildAllProjects)
@@ -17,8 +16,9 @@ public partial class CICD // StatusChecks
             Log.Information("✅Starting Build Status Check - Executing {Value} Target", nameof(BuildAllProjects));
 
             PrintPullRequestInfo();
-
             ValidateBranch();
+
+            Log.Information("Branch Is Valid!!");
         });
 
 
@@ -28,6 +28,11 @@ public partial class CICD // StatusChecks
         .Executes(() =>
         {
             Log.Information("✅Starting Unit Test Status Check - Executing {Value} Target", nameof(RunAllUnitTests));
+
+            PrintPullRequestInfo();
+            ValidateBranch();
+
+            Log.Information("Branch Is Valid!!");
         });
 
     void PrintPullRequestInfo()
