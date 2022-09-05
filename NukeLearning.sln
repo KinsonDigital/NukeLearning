@@ -12,8 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFiles", "SolutionFi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{4AC69180-3F42-4F67-B03A-877F739E0046}"
 	ProjectSection(SolutionItems) = preProject
-		.github\workflows\Build_And_Test.yml = .github\workflows\Build_And_Test.yml
 		.github\workflows\build-status-check.yml = .github\workflows\build-status-check.yml
+		.github\workflows\preview-release.yml = .github\workflows\preview-release.yml
 	EndProjectSection
 EndProject
 Global

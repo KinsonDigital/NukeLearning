@@ -1,7 +1,5 @@
 using Nuke.Common;
-using Nuke.Common.ProjectModel;
 using Nuke.Common.Tools.DotNet;
-using Nuke.Common.Tools.GitHub;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 namespace NukeLearningCICD;
@@ -16,8 +14,5 @@ public partial class CICD // Common
                 .SetProjectFile(Solution));
         });
 
-    Target ValidateGitHubRepo => _ => _
-        .Executes(() =>
-        {
-        });
+    // TODO: Create target to announce release on twitter 👉🏼 https://nuke.build/docs/common/chats/
 }

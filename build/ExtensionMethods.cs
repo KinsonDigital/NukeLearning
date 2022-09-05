@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using GlobExpressions;
-using JetBrains.Annotations;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
-using Nuke.Common.Tools.GitHub;
+using Nuke.Common.ProjectModel;
 using Octokit;
 using Serilog;
+using NukeProject = Nuke.Common.ProjectModel.Project;
 
 namespace NukeLearningCICD;
 
@@ -31,103 +29,234 @@ public static class ExtensionMethods
         return EqualTo(repo.Branch, branchPattern);
     }
 
+    public static bool IsCorrectBranch(this string branch, string branchPattern) => EqualTo(branch, branchPattern);
+
+    public static bool IsMasterBranch(this string branch) => branch == "master";
+
+    public static bool IsDevelopBranch(this string branch) => branch == "develop";
+
     public static bool IsOnFeatureBranch(this GitRepository repo)
     {
-        return IsOnCorrectBranch(repo, "feature/#-*");
+        const string namingSyntax = "feature/#-*";
+        var errorMsg = "The feature branch '{Value}' does not follow the correct naming syntax.";
+        errorMsg += $"{Environment.NewLine}Use the naming syntax '{namingSyntax}' for feature branches.";
+        errorMsg += "Example: feature/123-my-feature-branch";
+
+        var result =  IsOnCorrectBranch(repo, namingSyntax);
+
+        if (result is false)
+        {
+            Log.Error(errorMsg, repo.Branch);
+        }
+
+        return result;
     }
+
+    public static bool IsFeatureBranch(this string branch) => IsCorrectBranch(branch, "feature/#-*");
 
     public static bool IsOnPreviewReleaseBranch(this GitRepository repo)
     {
-        return IsOnCorrectBranch(repo, "preview/v*.*.*");
-    }
+        const string namingSyntax = "preview/v*.*.*-preview.#";
+        var errorMsg = "The preview release branch '{Value}' does not follow the correct naming syntax.";
+        errorMsg += $"{Environment.NewLine}Use the naming syntax '{namingSyntax}' for feature branches.";
+        errorMsg += "Example: preview/v1.2.3-preview.4";
 
-    public static bool IsOnPreviewReleaseBranch(this GitRepository repo, string messageOnFalse)
-    {
-        if (string.IsNullOrEmpty(messageOnFalse))
+        var result = IsOnCorrectBranch(repo, namingSyntax);
+
+        if (result is false)
         {
-            Assert.Fail($"The parameter '{nameof(messageOnFalse)}' cannot be null or empty when checking if currently on a preview release branch.");
-        }
-
-        var result = IsOnCorrectBranch(repo, "preview/v#.#.#-preview.#");
-
-        if (string.IsNullOrEmpty(messageOnFalse) is false && result is false)
-        {
-            Log.Error(messageOnFalse);
+            Log.Error(errorMsg, repo.Branch);
         }
 
         return result;
     }
+
+    public static bool IsPreviewReleaseBranch(this string branch) => IsCorrectBranch(branch, "preview/v*.*.*-preview.#");
 
     public static bool IsOnReleaseBranch(this GitRepository repo)
     {
-        return IsOnCorrectBranch(repo, "release/v*.*.*");
-    }
+        const string namingSyntax = "release/v*.*.*";
+        var errorMsg = "The release branch '{Value}' does not follow the correct naming syntax.";
+        errorMsg += $"{Environment.NewLine}Use the naming syntax '{namingSyntax}' for feature branches.";
+        errorMsg += "Example: release/v1.2.3";
 
-    public static bool IsOnPreviewFeatureBranch(this GitRepository repo)
-    {
-        return IsOnCorrectBranch(repo, "preview/feature/#-*");
-    }
+        var result = IsOnCorrectBranch(repo, namingSyntax);
 
-    public static bool IsOnHotFixBranch(this GitRepository repo)
-    {
-        return IsOnCorrectBranch(repo, "feature/#-*");
-    }
-
-    public static bool IsOnHotFixBranch(this GitRepository repo, string messageOnFalse)
-    {
-        if (string.IsNullOrEmpty(messageOnFalse))
+        if (result is false)
         {
-            Assert.Fail($"The parameter '{nameof(messageOnFalse)}' cannot be null or empty when checking if currently on a hot fix branch.");
-        }
-
-        var result = IsOnCorrectBranch(repo, "feature/#-*");
-
-        if (string.IsNullOrEmpty(messageOnFalse) is false && result is false)
-        {
-            Log.Error(messageOnFalse);
+            Log.Error(errorMsg, repo.Branch);
         }
 
         return result;
     }
 
-    // public static ITargetDefinition IsCorrectGitHubOrg(this ITargetDefinition targetDefinition)
-    // {
-    //     if (CICD.GitHubOrganization != "KinsonDigital")
-    //     {
-    //         var failMsg = "The github organization must be 'KinsonDigital'.";
-    //         failMsg += $"{Environment.NewLine}Verify that the '{nameof(CICD)}.{nameof(CICD.GitHubOrganization)}' static property is set correctly.";
-    //
-    //         Assert.Fail(failMsg);
-    //     }
-    //
-    //     return targetDefinition;
-    // }
+    public static bool IsReleaseBranch(this string branch) => IsCorrectBranch(branch, "release/v*.*.*");
 
-    public static async Task<bool> TagExists(this IRepositoriesClient repoClient, string tag)
+    public static bool IsOnPreviewFeatureBranch(this GitRepository repo)
     {
+        const string namingSyntax = "preview/feature/#-*";
+        var errorMsg = "The preview feature branch '{Value}' does not follow the correct naming syntax.";
+        errorMsg += $" {Environment.NewLine}Use the naming syntax '{namingSyntax}' for feature branches.";
+        errorMsg += "Example: preview/feature/123-my-preview-branch";
 
-        // var tags = await repoClient.GetAllTags(GitHubTasks.GetGitHubOwner(), GitHubTasks.GetGitHubName());
+        var result = IsOnCorrectBranch(repo, namingSyntax);
 
-        return false;
+        if (result is false)
+        {
+            Log.Error(errorMsg, repo.Branch);
+        }
+
+        return result;
     }
+
+    public static bool IsPreviewFeatureBranch(this string branch) => IsCorrectBranch(branch, "preview/feature/#-*");
+
+    public static bool IsOnHotFixBranch(this GitRepository repo)
+    {
+        const string namingSyntax = "hotfix/#-*";
+        var errorMsg = "The hotfix branch '{Value}' does not follow the correct naming syntax.";
+        errorMsg += $" {Environment.NewLine}Use the naming syntax '{namingSyntax}' for feature branches.";
+        errorMsg += "Example: hotfix/123-my-hotfix-branch";
+
+        var result = IsOnCorrectBranch(repo, namingSyntax);
+
+        if (result is false)
+        {
+            Log.Error(errorMsg, repo.Branch);
+        }
+
+        return result;
+    }
+
+    public static bool IsHotFixBranch(this string branch) => IsCorrectBranch(branch, "hotfix/#-*");
+
+    public static bool HasCorrectVersionSyntax(this NukeProject project, string versionPattern)
+    {
+        var currentVersion = project.GetVersion();
+
+        return EqualTo(currentVersion, versionPattern);
+    }
+
+    public static bool HasCorrectFileVersionSyntax(this NukeProject project, string versionPattern)
+    {
+        var currentVersion = project.GetFileVersion();
+
+        return EqualTo(currentVersion, versionPattern);
+    }
+
+    public static bool HasCorrectAssemblyVersionSyntax(this NukeProject project, string versionPattern)
+    {
+        var currentVersion = project.GetAssemblyVersion();
+
+        return EqualTo(currentVersion, versionPattern);
+    }
+
+    public static bool AllVersionsExist(this NukeProject project)
+    {
+        return project.VersionExists() && project.FileVersionExists() && project.AssemblyVersionExists();
+    }
+
+    public static bool VersionExists(this NukeProject project)
+    {
+        return !string.IsNullOrEmpty(project.GetProperty("Version"));
+    }
+
+    public static bool FileVersionExists(this NukeProject project)
+    {
+        return !string.IsNullOrEmpty(project.GetProperty("FileVersion"));
+    }
+
+    public static bool AssemblyVersionExists(this NukeProject project)
+    {
+        return !string.IsNullOrEmpty(project.GetProperty("AssemblyVersion"));
+    }
+
+    public static string GetVersion(this NukeProject project)
+    {
+        var version = project.GetProperty("Version");
+
+        if (string.IsNullOrEmpty(version))
+        {
+            // TODO: Create custom exception name MissingVersionException
+                // TODO: In the exception, explain how to set the version
+            throw new Exception($"The version for project '{project.Name}' is not set.");
+        }
+
+        return version;
+    }
+
+    public static string GetFileVersion(this NukeProject project)
+    {
+        var version = project.GetProperty("FileVersion");
+
+        if (string.IsNullOrEmpty(version))
+        {
+            // TODO: Create custom exception name MissingFileVersionException
+                // TODO: In the exception, explain how to set the version
+            throw new Exception($"The file version for project '{project.Name}' is not set.");
+        }
+
+        return version;
+    }
+
+    public static string GetAssemblyVersion(this NukeProject project)
+    {
+        var version = project.GetProperty("AssemblyVersion");
+
+        if (string.IsNullOrEmpty(version))
+        {
+            // TODO: Create custom exception name MissingAssemblyVersionException
+            // TODO: In the exception, explain how to set the version
+            throw new Exception($"The assembly version for project '{project.Name}' is not set.");
+        }
+
+        return version;
+    }
+
+    public static async Task<bool> TagExists(
+        this IRepositoriesClient repoClient,
+        string repoOwner,
+        string repoName,
+        string tag)
+    {
+        var tags = await repoClient.GetAllTags(repoOwner, repoName);
+
+        var foundTag = (from t in tags
+            where t.Name == tag
+            select t).FirstOrDefault();
+
+        return foundTag is not null;
+    }
+
+    public static async Task<bool> TagDoesNotExist(
+        this IRepositoriesClient repoClient,
+        string repoOwner,
+        string repoName,
+        string tag)
+    {
+        return !await TagExists(repoClient, repoOwner, repoName, tag);
+    }
+
+    public static bool IsManuallyExecuted(this GitHubActions gitHubActions)
+        => gitHubActions.IsPullRequest is false && gitHubActions.EventName == "workflow_dispatch";
 
     /// <summary>
     /// Returns a value indicating whether or not a branch with the given branch name
-    /// matches the given <paramref name="value"/>.
+    /// matches the given <paramref name="pattern"/>.
     /// </summary>
-    /// <param name="value">The value to check against the branch name.</param>
-    /// <returns><c>true</c> if the <paramref name="value"/> is equal to the branch name.</returns>
+    /// <param name="pattern">The value to check against the branch name.</param>
+    /// <returns><c>true</c> if the <paramref name="pattern"/> is equal to the branch name.</returns>
     /// <remarks>
     ///     The comparison is case sensitive.
     /// </remarks>
-    private static bool EqualTo(string branch, string value)
+    private static bool EqualTo(string value, string pattern)
     {
-        value = string.IsNullOrEmpty(value) ? string.Empty : value;
+        pattern = string.IsNullOrEmpty(pattern) ? string.Empty : pattern;
 
-        var hasGlobbingSyntax = value.Contains(MatchNumbers) || value.Contains(MatchAnything);
+        var hasGlobbingSyntax = pattern.Contains(MatchNumbers) || pattern.Contains(MatchAnything);
         var isEqual = hasGlobbingSyntax
-            ? Match(branch, value)
-            : (string.IsNullOrEmpty(value) && string.IsNullOrEmpty(branch)) || value == branch;
+            ? Match(value, pattern)
+            : (string.IsNullOrEmpty(pattern) && string.IsNullOrEmpty(value)) || pattern == value;
 
         return isEqual;
     }

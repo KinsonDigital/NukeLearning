@@ -76,14 +76,12 @@
               "BuildMainProject",
               "BuildStatusCheck",
               "BuildTestProject",
-              "CheckTag",
               "RestoreSolution",
               "RunAllUnitTests",
+              "RunPreviewRelease",
               "RunUnitTests",
               "Start",
-              "StartPreviewRelease",
-              "UnitTestStatusCheck",
-              "ValidateGitHubRepo"
+              "UnitTestStatusCheck"
             ]
           }
         },
@@ -101,14 +99,12 @@
               "BuildMainProject",
               "BuildStatusCheck",
               "BuildTestProject",
-              "CheckTag",
               "RestoreSolution",
               "RunAllUnitTests",
+              "RunPreviewRelease",
               "RunUnitTests",
               "Start",
-              "StartPreviewRelease",
-              "UnitTestStatusCheck",
-              "ValidateGitHubRepo"
+              "UnitTestStatusCheck"
             ]
           }
         },

@@ -1,4 +1,3 @@
-using System;
 using Nuke.Common;
 using Nuke.Common.Tools.DotNet;
 using Serilog;
@@ -10,6 +9,7 @@ public partial class CICD // Common.Build
 {
     Target BuildAllProjects => _ => _
         .DependsOn(RestoreSolution)
+        .Before(BuildMainProject, BuildTestProject)
         .Triggers(BuildMainProject, BuildTestProject)
         .Executes(() =>
         {

@@ -1,20 +1,13 @@
-using System;
-using System.IO;
-using System.Reflection;
-using GlobExpressions;
-using Microsoft.Build.Tasks;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.GitHub;
 using Octokit;
 using Octokit.Internal;
 using Serilog;
-using static Nuke.Common.Tools.DotNet.DotNetTasks;
+using Project = Nuke.Common.ProjectModel.Project;
 
 namespace NukeLearningCICD;
 
@@ -38,10 +31,11 @@ public partial class CICD : NukeBuild
 
     public static int Main()
     {
-        var credentials = new Credentials("fake-token");
-        GitHubTasks.GitHubClient = new GitHubClient(
-            new ProductHeaderValue(nameof(NukeBuild)),
-            new InMemoryCredentialStore(credentials));
+        // var tokenService = new TokenService();
+        // var credentials = new Credentials(tokenService.GetToken());
+        // GitHubTasks.GitHubClient = new GitHubClient(
+        //     new ProductHeaderValue(nameof(NukeBuild)),
+        //     new InMemoryCredentialStore(credentials));
 
         return Execute<CICD>(x => x.Start);
     }
@@ -52,9 +46,8 @@ public partial class CICD : NukeBuild
     [Nuke.Common.Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
 
-    readonly IRepositoriesClient RepoClient = GitHubTasks.GitHubClient.Repository;
-    [GitRepository] readonly GitRepository Repo;
     [Solution] readonly Solution Solution;
+    [GitRepository] readonly GitRepository Repo;
 
     static AbsolutePath SolutionRootDir => RootDirectory / MainProjName;
     static AbsolutePath TestingRootDir => RootDirectory / TestingDirName;
@@ -62,24 +55,14 @@ public partial class CICD : NukeBuild
     static AbsolutePath TestProjPath => TestingRootDir / TestProjName / TestProjFileName;
 
     Target Start => _ => _
-        .OnlyWhenStatic(() => !string.IsNullOrEmpty(Repo.Branch))
+        // .OnlyWhenStatic(() => !string.IsNullOrEmpty(Repo.Branch))
         .Executes(() =>
         {
-            Log.Information("GitHub Owner: {Value}", Repo.GetGitHubOwner());
-            Log.Information("GitHub Name: {Value}", Repo.GetGitHubName());
-            Log.Information("Is Preview Feature Branch: {Value}", Repo.IsOnPreviewFeatureBranch());
-            Log.Information("Is Release Branch: {Value}", Repo.IsOnReleaseBranch());
-        });
-
-    Target CheckTag => _ => _
-        .Executes(async () =>
-        {
-            var repoClient = GitHubTasks.GitHubClient.Repository;
-            var tags = await repoClient.GetAllTags("KinsonDigital", "NukeLearning");
-
-            foreach (var tag in tags)
-            {
-                Log.Information("Tags: {Value}", tag.Name);
-            }
+            Log.Information("Start() Target Executed");
+            Log.Information("Is Null: {Value}", GitHubActions.Instance is null);
+            // Log.Information("GitHub Owner: {Value}", Repo.GetGitHubOwner());
+            // Log.Information("GitHub Name: {Value}", Repo.GetGitHubName());
+            // Log.Information("Is Preview Feature Branch: {Value}", Repo.IsOnPreviewFeatureBranch());
+            // Log.Information("Is Release Branch: {Value}", Repo.IsOnReleaseBranch());
         });
 }
