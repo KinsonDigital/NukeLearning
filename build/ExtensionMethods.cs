@@ -72,7 +72,7 @@ public static class ExtensionMethods
         return result;
     }
 
-    public static bool IsPreviewReleaseBranch(this string branch) => IsCorrectBranch(branch, "preview/v*.*.*-preview.#");
+    public static bool IsPreviewBranch(this string branch) => IsCorrectBranch(branch, "preview/v*.*.*-preview.#");
 
     public static bool IsOnReleaseBranch(this GitRepository repo)
     {

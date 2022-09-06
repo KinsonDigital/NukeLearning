@@ -91,7 +91,8 @@
               "RunPreviewRelease",
               "RunUnitTests",
               "SendTweetAnnouncement",
-              "UnitTestStatusCheck"
+              "UnitTestStatusCheck",
+              "ValidVersionStatusCheck"
             ]
           }
         },
@@ -118,7 +119,8 @@
               "RunPreviewRelease",
               "RunUnitTests",
               "SendTweetAnnouncement",
-              "UnitTestStatusCheck"
+              "UnitTestStatusCheck",
+              "ValidVersionStatusCheck"
             ]
           }
         },

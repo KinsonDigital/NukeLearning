@@ -1,7 +1,9 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Tools.GitHub;
+using Octokit;
 using Serilog;
 
 namespace NukeLearningCICD;
@@ -11,12 +13,12 @@ public partial class CICD // StatusChecks
     Target BuildStatusCheck => _ => _
         .Before(BuildAllProjects, BuildMainProject, BuildTestProject)
         .Triggers(BuildAllProjects)
-        .Executes(() =>
+        .Executes(async () =>
         {
             Log.Information("✅Starting Build Status Check - Executing {Value} Target", nameof(BuildAllProjects));
 
             PrintPullRequestInfo();
-            ValidateBranchForStatusCheck();
+            await ValidateBranchForStatusCheck();
 
             Log.Information("Branch Is Valid!!");
         });
@@ -35,34 +37,43 @@ public partial class CICD // StatusChecks
             Log.Information("Branch Is Valid!!");
         });
 
+
+    // TODO: YAML file will filter master, hotfix, and release branches
+    Target ValidVersionStatusCheck => _ => _
+        .Requires(() => Repo.Branch.IsMasterBranch() || Repo.Branch.IsReleaseBranch())
+        .Executes(() =>
+        {
+            var branch = GetBranch();
+
+            if (branch.IsReleaseBranch())
+            {
+                ValidateVersions("#.#.#-preview.#");
+                return;
+            }
+
+            if (branch.IsMasterBranch())
+            {
+                ValidateVersions("#.#.#");
+                return;
+            }
+
+            Assert.Fail("The branch must be a 'master' or 'release/v#.#.#' branch.");
+        });
+
+
     Target DebugTask => _ => _
         .Executes(async () =>
         {
-            var result = await ValidBranchIssueNumber("feature/3-test-branch");
+            var milestoneClient = GitHubClient.Issue.Milestone;
+
+            // var milestone = (from m in await milestoneClient.GetAllForRepository("KinsonDigital", "NukeLearning")
+            //     where m.State == ItemState.Open && m.Title == "v.1.2.3"
+            //     select m).ToArray();
+
+
         });
 
-    void PrintValidBranchesForManuallyExecution()
-    {
-        var validBranches = new[]
-        {
-            "master",
-            "develop",
-            "feature/#-*",
-            "preview/feature/#-*",
-            "preview/v#.#.#-preview.#",
-            "release/v#.#.#",
-            "hotfix/#-*",
-        };
-        Log.Information("✔️Validating correct branch . . .");
-        Log.Information("Valid Branches:");
-
-        foreach (var branch in validBranches)
-        {
-            Log.Information($"\t  {branch}");
-        }
-    }
-
-    public async Task ValidateBranchForStatusCheck()
+    async Task ValidateBranchForStatusCheck()
     {
         var github = GitHubActions.Instance;
         var validBranch = false;
@@ -75,7 +86,7 @@ public partial class CICD // StatusChecks
                    Repo.Branch.IsDevelopBranch() ||
                    Repo.Branch.IsFeatureBranch() ||
                    Repo.Branch.IsPreviewFeatureBranch() ||
-                   Repo.Branch.IsPreviewReleaseBranch() ||
+                   Repo.Branch.IsPreviewBranch() ||
                    Repo.Branch.IsReleaseBranch() ||
                    Repo.Branch.IsHotFixBranch();
         }
@@ -84,7 +95,7 @@ public partial class CICD // StatusChecks
         if (IsServerBuild && github is not null)
         {
             validBranch = github.IsPullRequest
-                ? github.BaseRef.IsPreviewReleaseBranch() || github.BaseRef.IsReleaseBranch() ||
+                ? github.BaseRef.IsPreviewBranch() || github.BaseRef.IsReleaseBranch() ||
                   github.BaseRef.IsDevelopBranch() || github.BaseRef.IsMasterBranch()
                 : ValidBranchForManualExecution();
 
@@ -100,73 +111,89 @@ public partial class CICD // StatusChecks
         {
             var validIssueNumber = await ValidBranchIssueNumber(branch);
 
-            if (validIssueNumber)
+            validBranch = validIssueNumber;
+
+            if (validIssueNumber is false)
             {
-                return;
+                Log.Error($"The issue number '{ParseIssueNumber(branch)}' in branch '{branch}' does not exist.");
             }
         }
 
-        var statusCheckType = GitHubActions.Instance is not null && GitHubActions.Instance.IsPullRequest
-            ? "a pull request"
-            : "manual execution";
-        var errorMsg = $"The branch '{{Value}}' is not a valid branch to run a build status check on for {statusCheckType}.";
-        Log.Error(errorMsg, branch);
-        Assert.Fail("The destination branch for the pull request does not have the correct syntax.");
+        if (validBranch is false)
+        {
+            Assert.Fail($"The branch '{branch}' is invalid.");
+        }
     }
 
     async Task<bool> ValidBranchIssueNumber(string branch)
     {
-        // If the branch is a branch that contains an issue number
-        if (branch.IsFeatureBranch() || branch.IsPreviewFeatureBranch() || branch.IsHotFixBranch())
+        // If the branch is not a branch with an issue number, return as valid
+        if (!branch.IsFeatureBranch() && !branch.IsPreviewFeatureBranch() && !branch.IsHotFixBranch())
         {
-            var issueNumber = -1;
-
-            if (branch.IsFeatureBranch())
-            {
-                // feature/123-my-branch
-                var mainSections = branch.Split("/");
-                var number = mainSections[1].Split('-')[0];
-                issueNumber = int.Parse(number);
-            }
-            else if (branch.IsPreviewFeatureBranch())
-            {
-                // preview/feature/123-my-preview-branch
-                var mainSections = branch.Split("/");
-                var number = mainSections[2].Split('-')[0];
-                issueNumber = int.Parse(number);
-            }
-            else if (branch.IsHotFixBranch())
-            {
-                // hotfix/123-my-hotfix
-                var mainSections = branch.Split("/");
-                var number = mainSections[1].Split('-')[0];
-                issueNumber = int.Parse(number);
-            }
-
-            var issueClient = GitHubClient.Issue;
-
-            return await issueClient.IssueExists("KinsonDigital", "NukeLearning", issueNumber);
+            return true;
         }
 
-        return true;
+        var issueNumber = ParseIssueNumber(branch);
+
+        var issueClient = GitHubClient.Issue;
+
+        return await issueClient.IssueExists("KinsonDigital", "NukeLearning", issueNumber);
+    }
+
+    int ParseIssueNumber(string branch)
+    {
+        if (string.IsNullOrEmpty(branch))
+        {
+            return 0;
+        }
+
+        if (branch.IsFeatureBranch())
+        {
+            // feature/123-my-branch
+            var mainSections = branch.Split("/");
+            var number = mainSections[1].Split('-')[0];
+            return int.Parse(number);
+        }
+
+        if (branch.IsPreviewFeatureBranch())
+        {
+            // preview/feature/123-my-preview-branch
+            var mainSections = branch.Split("/");
+            var number = mainSections[2].Split('-')[0];
+            return int.Parse(number);
+        }
+
+        if (branch.IsHotFixBranch())
+        {
+            // hotfix/123-my-hotfix
+            var mainSections = branch.Split("/");
+            var number = mainSections[1].Split('-')[0];
+            return int.Parse(number);
+        }
+
+        return 0;
     }
 
 
+    // TODO: Add validation to release and preview release branches that a deployment of that version does not exist already
 
+    // TODO: Create release status check where the milestone must exist, have all of its issues closed, and PR's merged/closed
+        // Messages will exist for each incorrect milestone state
 
+    // TODO: Create release status check that pulls the version from the csproj and validates its syntax
+        // Release branches only
+        // Account for manual and PR executions
 
-    // TODO: Create status check to verify that the number in a branch is a real issue number
-        // The issue number must be linked to a pull request
-        // All pull requests linked must not be merged.  (Some open PR are ok.  Just not all closed)
-
-    // TODO: Create status check to verify that an open milestone exists with a name that matches the current version pulled from the csproj
-
-    // TODO: Create status check for release branches only where the milestone must have all of its issues closed and PR's merged/closed
-        // 👉🏼https://github.com/nuke-build/nuke/blob/develop/build/Build.GitFlow.cs
+    // TODO: Create release status check that pulls the version from the csproj and checks if the nuget package does not already exist
+        // Release branches only
+        // Account for manual and PR executions
 
     // TODO: Add status check to check that a nuget package of a particular version does not already exist
         // This is for preview and production releases
 
-    // TODO: Create target status check to check that the release notes exist
+    // TODO: Create release status check to check that the release notes file exists
         // This will be for preview and production releases
+        // Account for manual and PR executions
 }
+
+

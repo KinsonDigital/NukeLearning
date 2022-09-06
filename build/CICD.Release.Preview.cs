@@ -8,9 +8,9 @@ public partial class CICD // Release.Preview
 {
     Target RunPreviewRelease => _ => _
         .Requires(() => Repo.IsOnPreviewReleaseBranch())
-        .Requires(() => CSProjVersionExists())
-        .Requires(() => CSProjFileVersionExists())
-        .Requires(() => CSProjAssemblyVersionExists())
+        .Requires(() => ProjVersionExists())
+        .Requires(() => ProjFileVersionExists())
+        .Requires(() => ProjAssemblyVersionExists())
         .Before(BuildAllProjects, RunAllUnitTests)
         .Triggers(BuildAllProjects, RunAllUnitTests)
         .Executes(async () =>

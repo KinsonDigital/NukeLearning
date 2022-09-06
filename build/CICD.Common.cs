@@ -76,8 +76,8 @@ public partial class CICD // Common
         });
 
     Target DebugTarget => _ => _
-        .Requires(() => CSProjVersionExists())
-        .Requires(() => CSProjAssemblyVersionExists())
+        .Requires(() => ProjVersionExists())
+        .Requires(() => ProjAssemblyVersionExists())
         .Executes(() =>
         {
             ReleaseNotesExist();
@@ -110,25 +110,25 @@ public partial class CICD // Common
         }
         else
         {
-            Log.Information("Local Build.  No pull request info to print.");
+            Log.Information("Local Build");
         }
     }
 
-    bool CSProjVersionExists()
+    bool ProjVersionExists()
     {
         var project = Solution.GetProject(MainProjName);
 
         return !string.IsNullOrEmpty(project.GetProperty("Version"));
     }
 
-    bool CSProjFileVersionExists()
+    bool ProjFileVersionExists()
     {
         var project = Solution.GetProject(MainProjName);
 
         return !string.IsNullOrEmpty(project.GetProperty("FileVersion"));
     }
 
-    bool CSProjAssemblyVersionExists()
+    bool ProjAssemblyVersionExists()
     {
         var project = Solution.GetProject(MainProjName);
 
@@ -139,7 +139,7 @@ public partial class CICD // Common
     {
         var project = Solution.GetProject(MainProjName);
 
-        Log.Information("✔️ Validating all csproj version exist . . .");
+        Log.Information("✔️ Validating that version exists in csproj file . . .");
         if (project.AllVersionsExist() is false)
         {
             var failMsg = new StringBuilder();
@@ -206,6 +206,24 @@ public partial class CICD // Common
                 File.Delete(packageFilePath);
             }
         }
+    }
+
+    string GetBranch()
+    {
+        if (IsServerBuild && GitHubActions.Instance is not null)
+        {
+            return GitHubActions.Instance.IsPullRequest
+                ? GitHubActions.Instance.BaseRef
+                : Repo.Branch;
+        }
+
+        if (IsLocalBuild || GitHubActions.Instance is null)
+        {
+            return Repo.Branch;
+        }
+
+        Assert.Fail("Could not get the correct branch.");
+        return string.Empty;
     }
 
 
