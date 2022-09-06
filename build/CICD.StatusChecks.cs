@@ -1,5 +1,7 @@
+using System.Threading.Tasks;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
+using Nuke.Common.Tools.GitHub;
 using Serilog;
 
 namespace NukeLearningCICD;
@@ -14,7 +16,7 @@ public partial class CICD // StatusChecks
             Log.Information("✅Starting Build Status Check - Executing {Value} Target", nameof(BuildAllProjects));
 
             PrintPullRequestInfo();
-            ValidateBranch();
+            ValidateBranchForStatusCheck();
 
             Log.Information("Branch Is Valid!!");
         });
@@ -23,14 +25,20 @@ public partial class CICD // StatusChecks
     Target UnitTestStatusCheck => _ => _
         .Before(RunAllUnitTests, RunUnitTests)
         .Triggers(RunAllUnitTests)
-        .Executes(() =>
+        .Executes(async () =>
         {
             Log.Information("✅Starting Unit Test Status Check - Executing {Value} Target", nameof(RunAllUnitTests));
 
             PrintPullRequestInfo();
-            ValidateBranch();
+            await ValidateBranchForStatusCheck();
 
             Log.Information("Branch Is Valid!!");
+        });
+
+    Target DebugTask => _ => _
+        .Executes(async () =>
+        {
+            var result = await ValidBranchIssueNumber("feature/3-test-branch");
         });
 
     void PrintValidBranchesForManuallyExecution()
@@ -54,69 +62,98 @@ public partial class CICD // StatusChecks
         }
     }
 
-    void ValidateBranch()
+    public async Task ValidateBranchForStatusCheck()
     {
+        var github = GitHubActions.Instance;
+        var validBranch = false;
+        var branch = string.Empty;
+
+        // This is if the workflow is execution locally or manually in GitHub using workflow_dispatch
+        bool ValidBranchForManualExecution()
+        {
+            return Repo.Branch.IsMasterBranch() ||
+                   Repo.Branch.IsDevelopBranch() ||
+                   Repo.Branch.IsFeatureBranch() ||
+                   Repo.Branch.IsPreviewFeatureBranch() ||
+                   Repo.Branch.IsPreviewReleaseBranch() ||
+                   Repo.Branch.IsReleaseBranch() ||
+                   Repo.Branch.IsHotFixBranch();
+        }
+
         // If the build is on the server and the GitHubActions object exists
-        if (IsServerBuild && GitHubActions.Instance is not null)
+        if (IsServerBuild && github is not null)
         {
-            var github = GitHubActions.Instance;
+            validBranch = github.IsPullRequest
+                ? github.BaseRef.IsPreviewReleaseBranch() || github.BaseRef.IsReleaseBranch() ||
+                  github.BaseRef.IsDevelopBranch() || github.BaseRef.IsMasterBranch()
+                : ValidBranchForManualExecution();
 
-            if (github.IsPullRequest)
+            branch = github.IsPullRequest ? github.BaseRef : Repo.Branch;
+        }
+        else if (IsLocalBuild || github is null)
+        {
+            validBranch = ValidBranchForManualExecution();
+            branch = Repo.Branch;
+        }
+
+        if (validBranch)
+        {
+            var validIssueNumber = await ValidBranchIssueNumber(branch);
+
+            if (validIssueNumber)
             {
-                var isValidDestinationBranch =
-                    github.BaseRef.IsPreviewReleaseBranch() ||
-                    github.BaseRef.IsReleaseBranch() ||
-                    github.BaseRef.IsDevelopBranch() ||
-                    github.BaseRef.IsMasterBranch();
-
-                if (isValidDestinationBranch)
-                {
-                    return;
-                }
-
-                const string errorMsg = "The branch '{Value}' is not a valid branch to run a build status check on for a pull request.";
-                Log.Error(errorMsg, github.BaseRef);
-                Assert.Fail("The destination branch for the pull request does not have the correct syntax.");
-            }
-            else if(github.IsManuallyExecuted())
-            {
-                ValidateBranchForManualExecution();
+                return;
             }
         }
-        else if (IsLocalBuild || GitHubActions.Instance is null)
-        {
-            ValidateBranchForManualExecution();
-        }
+
+        var statusCheckType = GitHubActions.Instance is not null && GitHubActions.Instance.IsPullRequest
+            ? "a pull request"
+            : "manual execution";
+        var errorMsg = $"The branch '{{Value}}' is not a valid branch to run a build status check on for {statusCheckType}.";
+        Log.Error(errorMsg, branch);
+        Assert.Fail("The destination branch for the pull request does not have the correct syntax.");
     }
 
-    void ValidateBranchForManualExecution()
+    async Task<bool> ValidBranchIssueNumber(string branch)
     {
-        PrintValidBranchesForManuallyExecution();
-
-        if (string.IsNullOrEmpty(Repo.Branch))
+        // If the branch is a branch that contains an issue number
+        if (branch.IsFeatureBranch() || branch.IsPreviewFeatureBranch() || branch.IsHotFixBranch())
         {
-            Assert.Fail("Branch null or empty.  Possible detached HEAD?");
-            return;
+            var issueNumber = -1;
+
+            if (branch.IsFeatureBranch())
+            {
+                // feature/123-my-branch
+                var mainSections = branch.Split("/");
+                var number = mainSections[1].Split('-')[0];
+                issueNumber = int.Parse(number);
+            }
+            else if (branch.IsPreviewFeatureBranch())
+            {
+                // preview/feature/123-my-preview-branch
+                var mainSections = branch.Split("/");
+                var number = mainSections[2].Split('-')[0];
+                issueNumber = int.Parse(number);
+            }
+            else if (branch.IsHotFixBranch())
+            {
+                // hotfix/123-my-hotfix
+                var mainSections = branch.Split("/");
+                var number = mainSections[1].Split('-')[0];
+                issueNumber = int.Parse(number);
+            }
+
+            var issueClient = GitHubClient.Issue;
+
+            return await issueClient.IssueExists("KinsonDigital", "NukeLearning", issueNumber);
         }
 
-        var isValidDestinationBranch =
-            Repo.Branch.IsMasterBranch() ||
-            Repo.Branch.IsDevelopBranch() ||
-            Repo.Branch.IsFeatureBranch() ||
-            Repo.Branch.IsPreviewFeatureBranch() ||
-            Repo.Branch.IsPreviewReleaseBranch() ||
-            Repo.Branch.IsReleaseBranch() ||
-            Repo.Branch.IsHotFixBranch();
-
-        if (isValidDestinationBranch)
-        {
-            return;
-        }
-
-        const string errorMsg = "The branch '{Value}' is not a valid branch to run a build status check on for manual execution.";
-        Log.Error(errorMsg, Repo.Branch);
-        Assert.Fail("The destination branch does not have the correct syntax.");
+        return true;
     }
+
+
+
+
 
     // TODO: Create status check to verify that the number in a branch is a real issue number
         // The issue number must be linked to a pull request

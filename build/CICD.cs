@@ -2,6 +2,7 @@ using Nuke.Common;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
+using Octokit;
 using NukeParameter = Nuke.Common.ParameterAttribute;
 
 namespace NukeLearningCICD;
@@ -20,11 +21,16 @@ public partial class CICD : NukeBuild
     const string NugetOrgSource = "https://api.nuget.org/v3/index.json";
 
     public static int Main()
-        => Execute<CICD>(x => x.BuildAllProjects, x => x.RunAllUnitTests);
+    {
+        GitHubClient = new GitHubClient(new ProductHeaderValue("NukeLearningApp"));
+
+        return Execute<CICD>(x => x.BuildAllProjects, x => x.RunAllUnitTests);
+    }
 
     [Solution] readonly Solution Solution;
     [GitRepository] readonly GitRepository Repo;
 
+    [Parameter] static GitHubClient GitHubClient;
     [Parameter(List = false)]
     static readonly Configuration Configuration = GetBuildConfig();
     [Parameter] [Secret] readonly string NugetApiKey;
@@ -32,6 +38,8 @@ public partial class CICD : NukeBuild
     [Parameter] [Secret] readonly string TwitterConsumerSecret;
     [Parameter] [Secret] readonly string TwitterAccessToken;
     [Parameter] [Secret] readonly string TwitterAccessTokenSecret;
+
+    // TODO: Setup the github client to use the github token.  If this is even required.  It might be built in
 
     static AbsolutePath TestingRootDir => RootDirectory / TestingDirName;
     static AbsolutePath MainProjPath => RootDirectory / MainProjName / MainProjFileName;

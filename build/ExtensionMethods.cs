@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.ProjectModel;
@@ -238,6 +240,24 @@ public static class ExtensionMethods
 
     public static bool IsManuallyExecuted(this GitHubActions gitHubActions)
         => gitHubActions.IsPullRequest is false && gitHubActions.EventName == "workflow_dispatch";
+
+    public static async Task<bool> IssueExists(
+        this IIssuesClient issueClient,
+        string owner,
+        string name,
+        int issueNumber)
+    {
+        try
+        {
+            _ = await issueClient.Get(owner, name, issueNumber);
+        }
+        catch (NotFoundException e)
+        {
+            return false;
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Returns a value indicating whether or not a branch with the given branch name
