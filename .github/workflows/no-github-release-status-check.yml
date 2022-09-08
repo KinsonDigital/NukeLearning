@@ -1,4 +1,4 @@
-name: ✅Valid Version Status Check
+name: ✅No GitHub Release Status Check
 
 
 on:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Valid Version Status Check
-        run: ./build.cmd ValidVersionStatusCheck
+      - name: Run No GitHub Release Status Check
+        run: ./build.cmd NoGitHubReleaseStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

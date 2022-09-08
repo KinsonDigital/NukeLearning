@@ -20,6 +20,10 @@
         "GitHubClient": {
           "type": "string"
         },
+        "GitHubToken": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
         "Help": {
           "type": "boolean",
           "description": "Shows the help text for this build assembly"
@@ -49,7 +53,7 @@
           "type": "boolean",
           "description": "Disables displaying the NUKE logo"
         },
-        "NugetApiKey": {
+        "NuGetApiKey": {
           "type": "string",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
@@ -82,15 +86,19 @@
               "BuildMainProject",
               "BuildStatusCheck",
               "BuildTestProject",
+              "CreateGitHubRelease",
               "CreateNugetPackage",
-              "DebugTarget",
               "DebugTask",
+              "MilestoneStateStatusCheck",
+              "NoGitHubReleaseStatusCheck",
               "PublishNugetPackage",
+              "ReleaseNotesExistStatusCheck",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
               "RunUnitTests",
               "SendTweetAnnouncement",
+              "TagDoesNotExistStatusCheck",
               "UnitTestStatusCheck",
               "ValidVersionStatusCheck"
             ]
@@ -110,15 +118,19 @@
               "BuildMainProject",
               "BuildStatusCheck",
               "BuildTestProject",
+              "CreateGitHubRelease",
               "CreateNugetPackage",
-              "DebugTarget",
               "DebugTask",
+              "MilestoneStateStatusCheck",
+              "NoGitHubReleaseStatusCheck",
               "PublishNugetPackage",
+              "ReleaseNotesExistStatusCheck",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
               "RunUnitTests",
               "SendTweetAnnouncement",
+              "TagDoesNotExistStatusCheck",
               "UnitTestStatusCheck",
               "ValidVersionStatusCheck"
             ]

@@ -1,8 +1,13 @@
+using System;
 using Nuke.Common;
+using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
+using Nuke.Common.Tools.GitHub;
 using Octokit;
+using Octokit.Internal;
+using Serilog;
 using NukeParameter = Nuke.Common.ParameterAttribute;
 
 namespace NukeLearningCICD;
@@ -11,6 +16,7 @@ namespace NukeLearningCICD;
 
 public partial class CICD : NukeBuild
 {
+    const string Owner = "KinsonDigital";
     const string ProjFileExt = "csproj";
     const string TestProjPostfix = "Tests";
     const string TestingDirName = "Testing";
@@ -22,22 +28,28 @@ public partial class CICD : NukeBuild
 
     public static int Main()
     {
-        GitHubClient = new GitHubClient(new ProductHeaderValue("NukeLearningApp"));
+        // GitHubClient = new GitHubClient(new ProductHeaderValue("NukeLearningApp"));
+        //"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"
+        // var credentials = new Credentials(GitHubActions.Instance.Token);
+        // GitHubClient = new GitHubClient(
+        //     new ProductHeaderValue(MainProjName),
+        //     new InMemoryCredentialStore(credentials));
 
         return Execute<CICD>(x => x.BuildAllProjects, x => x.RunAllUnitTests);
     }
 
+    GitHubActions GitHubActions => GitHubActions.Instance;
     [Solution] readonly Solution Solution;
     [GitRepository] readonly GitRepository Repo;
 
-    [Parameter] static GitHubClient GitHubClient;
-    [Parameter(List = false)]
-    static readonly Configuration Configuration = GetBuildConfig();
-    [Parameter] [Secret] readonly string NugetApiKey;
-    [Parameter] [Secret] readonly string TwitterConsumerKey;
-    [Parameter] [Secret] readonly string TwitterConsumerSecret;
-    [Parameter] [Secret] readonly string TwitterAccessToken;
-    [Parameter] [Secret] readonly string TwitterAccessTokenSecret;
+    [NukeParameter] static GitHubClient GitHubClient;
+    [NukeParameter(List = false)] static readonly Configuration Configuration = GetBuildConfig();
+    [NukeParameter] [Secret] readonly string GitHubToken;
+    [NukeParameter] [Secret] readonly string NuGetApiKey;
+    [NukeParameter] [Secret] readonly string TwitterConsumerKey;
+    [NukeParameter] [Secret] readonly string TwitterConsumerSecret;
+    [NukeParameter] [Secret] readonly string TwitterAccessToken;
+    [NukeParameter] [Secret] readonly string TwitterAccessTokenSecret;
 
     // TODO: Setup the github client to use the github token.  If this is even required.  It might be built in
 
@@ -45,11 +57,13 @@ public partial class CICD : NukeBuild
     static AbsolutePath MainProjPath => RootDirectory / MainProjName / MainProjFileName;
     static AbsolutePath TestProjPath => TestingRootDir / TestProjName / TestProjFileName;
     static AbsolutePath NugetOutputPath => RootDirectory / "Artifacts";
+    static AbsolutePath PreviewReleaseNotesDirPath => RootDirectory / "Documentation" / "ReleaseNotes"  / "PreviewReleases";
+    static AbsolutePath ProductionReleaseNotesDirPath => RootDirectory / "Documentation" / "ReleaseNotes"  / "ProductionReleases";
 
     static Configuration GetBuildConfig()
     {
         var repo = GitRepository.FromLocalDirectory(RootDirectory);
 
-        return repo.Branch.IsMasterBranch() ? Configuration.Release : Configuration.Debug;
+        return (repo.Branch ?? string.Empty).IsMasterBranch() ? Configuration.Release : Configuration.Debug;
     }
 }

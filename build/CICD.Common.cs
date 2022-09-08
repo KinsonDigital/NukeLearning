@@ -2,11 +2,13 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using GlobExpressions;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tools.DotNet;
+using Octokit;
 using Serilog;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using static Nuke.Common.Tools.Twitter.TwitterTasks;
@@ -23,6 +25,7 @@ public partial class CICD // Common
                 .SetProjectFile(Solution));
         });
 
+
     Target CreateNugetPackage => _ => _
         .DependsOn(RestoreSolution)
         .After(RestoreSolution, BuildTestProject, RunUnitTests)
@@ -37,9 +40,10 @@ public partial class CICD // Common
                 .EnableNoRestore());
         });
 
+
     Target PublishNugetPackage => _ => _
         .DependsOn(RunAllUnitTests, CreateNugetPackage)
-        .Requires(() => NugetApiKey)
+        .Requires(() => NuGetApiKey)
         .Requires(() => IsServerBuild) // Prevent accidental push attempt from local machine
         .Executes(() =>
         {
@@ -55,8 +59,9 @@ public partial class CICD // Common
             DotNetNuGetPush(s => s
                 .SetTargetPath(fullPackagePath)
                 .SetSource(NugetOrgSource)
-                .SetApiKey(NugetApiKey));
+                .SetApiKey(NuGetApiKey));
         });
+
 
     Target SendTweetAnnouncement => _ => _
         .Requires(() => IsServerBuild)
@@ -75,21 +80,27 @@ public partial class CICD // Common
                 TwitterAccessTokenSecret);
         });
 
-    Target DebugTarget => _ => _
-        .Requires(() => ProjVersionExists())
-        .Requires(() => ProjAssemblyVersionExists())
+
+    Target CreateGitHubRelease => _ => _
+        .DependsOn(RunAllUnitTests)
+        .After(RunAllUnitTests, RunUnitTests)
         .Executes(() =>
         {
-            ReleaseNotesExist();
+
         });
 
-
-
-    bool ReleaseNotesExist()
+    bool ReleaseNotesExist(ReleaseType releaseType, string version)
     {
+        var releaseNotesDirPath = releaseType switch
+        {
+            ReleaseType.Production => ProductionReleaseNotesDirPath,
+            ReleaseType.Preview => PreviewReleaseNotesDirPath,
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
+        };
 
-
-        return false;
+        return (from f in Glob.Files(releaseNotesDirPath, "*.md")
+            where f.Contains(version)
+            select f).Any();
     }
 
     void PrintPullRequestInfo()
@@ -226,9 +237,35 @@ public partial class CICD // Common
         return string.Empty;
     }
 
+    async Task CreateNewGitHubRelease(ReleaseType releaseType)
+    {
+        try
+        {
+            var project = Solution.GetProject(MainProjName);
+            var releaseClient = GitHubClient.Repository.Release;
 
-    // TODO: Create target to create GitHub release
-        // This must add release notes, set title correctly, attach assets, etc.
+            var version = $"v{project.GetVersion()}";
+            var releaseNotesFilePath = Solution.GetReleaseNotesFilePath(releaseType, version);
+            var releaseNotes = Solution.GetReleaseNotes(releaseType, version);
+
+            var newRelease = new NewRelease(version)
+            {
+                Name = $"🚀{releaseType} Release - {version}",
+                Body = releaseNotes,
+                Prerelease = releaseType == ReleaseType.Preview,
+                TargetCommitish = "8242f49b45ed246d99fa4fc74c661e7b0c9ebdae",
+            };
+
+            var releaseResult = await releaseClient.Create(Owner, MainProjName, newRelease);
+
+            await releaseClient.UploadTextFileAsset(releaseResult, releaseNotesFilePath);
+        }
+        catch (Exception e)
+        {
+            Assert.Fail(e.Message);
+        }
+    }
+
 
     // TODO: Add target or requirement to check if a version tag already exists
 }

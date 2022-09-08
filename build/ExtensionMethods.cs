@@ -1,24 +1,28 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.ProjectModel;
 using Octokit;
 using Serilog;
+using static Nuke.Common.Tools.Git.GitTasks;
 using NukeProject = Nuke.Common.ProjectModel.Project;
 
 namespace NukeLearningCICD;
 
 public static class ExtensionMethods
 {
-    private static int[] digits = new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     private const char MatchNumbers = '#';
     private const char MatchAnything = '*';
+
+    public static bool IsNotNullOrEmpty(this string value) => !string.IsNullOrEmpty(value);
 
     public static bool IsOnCorrectBranch(this GitRepository repo, string branchPattern)
     {
@@ -43,7 +47,7 @@ public static class ExtensionMethods
         errorMsg += $"{Environment.NewLine}Use the naming syntax '{namingSyntax}' for feature branches.";
         errorMsg += "Example: feature/123-my-feature-branch";
 
-        var result =  IsOnCorrectBranch(repo, namingSyntax);
+        var result = IsOnCorrectBranch(repo, namingSyntax);
 
         if (result is false)
         {
@@ -129,6 +133,12 @@ public static class ExtensionMethods
         return result;
     }
 
+    public static void CreateTag(this GitRepository _, string tag)
+    {
+        Git($"tag {tag}");
+        Git($"push origin {tag}");
+    }
+
     public static bool IsHotFixBranch(this string branch) => IsCorrectBranch(branch, "hotfix/#-*");
 
     public static bool HasCorrectVersionSyntax(this NukeProject project, string versionPattern)
@@ -179,7 +189,7 @@ public static class ExtensionMethods
         if (string.IsNullOrEmpty(version))
         {
             // TODO: Create custom exception name MissingVersionException
-                // TODO: In the exception, explain how to set the version
+            // TODO: In the exception, explain how to set the version
             throw new Exception($"The version for project '{project.Name}' is not set.");
         }
 
@@ -193,7 +203,7 @@ public static class ExtensionMethods
         if (string.IsNullOrEmpty(version))
         {
             // TODO: Create custom exception name MissingFileVersionException
-                // TODO: In the exception, explain how to set the version
+            // TODO: In the exception, explain how to set the version
             throw new Exception($"The file version for project '{project.Name}' is not set.");
         }
 
@@ -230,12 +240,12 @@ public static class ExtensionMethods
     }
 
     public static async Task<bool> TagDoesNotExist(
-        this IRepositoriesClient repoClient,
+        this IRepositoriesClient client,
         string repoOwner,
         string repoName,
         string tag)
     {
-        return !await TagExists(repoClient, repoOwner, repoName, tag);
+        return !await TagExists(client, repoOwner, repoName, tag);
     }
 
     public static bool IsManuallyExecuted(this GitHubActions gitHubActions)
@@ -257,6 +267,116 @@ public static class ExtensionMethods
         }
 
         return true;
+    }
+
+    public static async Task<bool> ReleaseExists(
+        this IReleasesClient client,
+        string owner,
+        string name,
+        string tag)
+    {
+        return (from r in await client.GetAll(owner, name)
+            where r.TagName == tag
+            select r).ToArray().Any();
+    }
+
+    public static async Task UploadTextFileAsset(this IReleasesClient client, Release release, string filePath)
+    {
+        if (File.Exists(filePath) is false)
+        {
+            var errorMsg = "Could not upload text file asset to release '{Value1}'.";
+            errorMsg += $"{Environment.NewLine}The path to the asset file '{{Value2}} does not exist.";
+            Log.Error(errorMsg, release.Name, filePath);
+            Assert.Fail($"The asset file '{filePath}' does not exist.");
+        }
+
+        await using var fileAsset = File.OpenRead(filePath);
+
+        var assetUpload = new ReleaseAssetUpload()
+        {
+            FileName = Path.GetFileName(filePath),
+            ContentType = "application/zip",
+            RawData = fileAsset
+        };
+
+        try
+        {
+            var result = await client.UploadAsset(release, assetUpload);
+
+            Log.Information("Id: {Value}", result.Id);
+            Log.Information("Label: {Value}", result.Label);
+            Log.Information("Name: {Value}", result.Name);
+        }
+        catch (Exception e)
+        {
+            var errorMsg = "Uploading the text file asset '{Value1}' for release '{Value2}' failed.";
+            errorMsg += $"{Environment.NewLine}{e.Message}";
+            Log.Error(errorMsg);
+            Assert.Fail("There was an issue uploading a release asset.");
+        }
+    }
+
+    public static async Task<bool> MilestoneExists(
+        this IMilestonesClient client,
+        string owner,
+        string name,
+        string version)
+    {
+        return (from m in await client.GetAllForRepository(owner, name)
+            where m.Title == version
+            select m).Any();
+    }
+
+    public static async Task<Milestone?> GetByTitle(
+        this IMilestonesClient client,
+        string owner,
+        string name,
+        string title)
+    {
+        var milestones = (from m in await client.GetAllForRepository(owner, name)
+            where m.Title == title
+            select m).ToArray();
+
+        if (milestones.Length <= 0)
+        {
+            return null;
+        }
+
+        return milestones[0];
+    }
+
+    public static string GetReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)
+    {
+        const string relativeDir = "Documentation/ReleaseNotes";
+
+        var notesDirPath = releaseType switch
+        {
+            ReleaseType.Preview => $"{solution.Directory}/{relativeDir}/PreviewReleases",
+            ReleaseType.Production => $"{solution.Directory}/{relativeDir}/ProductionReleases",
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
+        };
+
+        var fileName = $"Release-Notes-{version}.md";
+
+        return $"{notesDirPath}/{fileName}";
+    }
+
+    public static string GetReleaseNotes(this Solution solution, ReleaseType releaseType, string version)
+    {
+        var fullFilePath = solution.GetReleaseNotesFilePath(releaseType, version);
+
+        if (File.Exists(fullFilePath) is false)
+        {
+            var errorMsg = "The {Value1} release notes for version '{Value2}' at file path '{Value3}'";
+            errorMsg += " could not be found.";
+            Log.Error(errorMsg,
+                releaseType.ToString().ToLower(),
+                version,
+                fullFilePath.Replace(solution.Directory, "~"));
+            Assert.Fail("The release notes file could not be found.");
+        }
+
+        return File.ReadAllText(fullFilePath);
     }
 
     /// <summary>

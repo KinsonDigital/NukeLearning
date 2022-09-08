@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{
 		.github\workflows\preview-release.yml = .github\workflows\preview-release.yml
 		.github\workflows\unit-test-status-check.yml = .github\workflows\unit-test-status-check.yml
 		.github\workflows\valid-version-status-check.yml = .github\workflows\valid-version-status-check.yml
+		.github\workflows\no-github-release-status-check.yml = .github\workflows\no-github-release-status-check.yml
+		.github\workflows\milestone-state-status-check.yml = .github\workflows\milestone-state-status-check.yml
 	EndProjectSection
 EndProject
 Global

@@ -1,4 +1,4 @@
-name: ✅Build Status Check
+name: ✅Milestone State Status Check
 
 
 on:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Build Status Check
-        run: ./build.cmd BuildStatusCheck
+      - name: Run Milestone State Status Check
+        run: ./build.cmd MilestoneStateStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

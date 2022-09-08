@@ -1,6 +1,6 @@
 namespace NukeLearningCICD;
 
-public enum VersionType
+public enum ReleaseType
 {
     Production,
     Preview
