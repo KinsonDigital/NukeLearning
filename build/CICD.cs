@@ -44,7 +44,7 @@ public partial class CICD : NukeBuild
 
     [NukeParameter] static GitHubClient GitHubClient;
     [NukeParameter(List = false)] static readonly Configuration Configuration = GetBuildConfig();
-    [NukeParameter] [Secret] readonly string GitHubToken;
+    [NukeParameter] [Secret] readonly string GitHubToken = GetGitHubToken();
     [NukeParameter] [Secret] readonly string NuGetApiKey;
     [NukeParameter] [Secret] readonly string TwitterConsumerKey;
     [NukeParameter] [Secret] readonly string TwitterConsumerSecret;
@@ -65,5 +65,15 @@ public partial class CICD : NukeBuild
         var repo = GitRepository.FromLocalDirectory(RootDirectory);
 
         return (repo.Branch ?? string.Empty).IsMasterBranch() ? Configuration.Release : Configuration.Debug;
+    }
+
+    static string GetGitHubToken()
+    {
+        if (NukeBuild.IsServerBuild)
+        {
+            return GitHubActions.Instance.Token;
+        }
+
+        return "local-fake-token";
     }
 }
