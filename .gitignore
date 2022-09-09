@@ -348,3 +348,5 @@ MigrationBackup/
 
 # Ignore JetBrains Rider files
 .idea
+
+TokenService.cs

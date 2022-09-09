@@ -1,10 +1,11 @@
-name: ✅Build Status Check
+name: ✅Unit Test Status Check
 
 
 on:
   workflow_dispatch:
   pull_request:
     - feature/*-*
+
 
 # TODO: Needs to run on windows and ubuntu
 
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Build Status Check
-        run: ./build.cmd BuildStatusCheck
+      - name: Run Unit Test Status Check
+        run: ./build.cmd UnitTestStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
