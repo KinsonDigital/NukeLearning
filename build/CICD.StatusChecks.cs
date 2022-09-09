@@ -47,12 +47,60 @@ public partial class CICD // StatusChecks
             Log.Information("Branch Is Valid!!");
         });
 
+    public enum BranchType
+    {
+        Master,
+        Develop,
+        Feature,
+        PreviewFeature,
+        Release,
+        Preview,
+        HotFix
+    }
 
-    Target ValidVersionStatusCheck => _ => _
-        .Requires(() => GetBranch().IsMasterBranch() || GetBranch().IsReleaseBranch())
+
+    Target ValidFeaturePRStatusCheck => _ => _
+        // .Requires(() => IsPullRequest()) // TODO: Re-enable this
         .Executes(() =>
         {
-            var releaseType = GetBranch().IsMasterBranch()
+            var isFailure = false;
+            var targetBranch = GitHubActions.Instance.BaseRef ?? string.Empty;
+            var sourceBranch = GitHubActions.Instance.HeadRef ?? string.Empty;
+
+            // TODO: Remove this one debugging is finished
+            targetBranch = "develop";
+            sourceBranch = "feature/1-";
+
+            if (sourceBranch.IsFeatureBranch() is false)
+            {
+                var errorMSg = "The feature branch '{Value1}' is invalid.";
+                errorMSg += $"{Environment.NewLine}\t       The syntax for feature branches is 'feature/#-*'.";
+                Log.Error(errorMSg, targetBranch);
+                isFailure = true;
+            }
+
+            if (targetBranch.IsDevelopBranch() is false)
+            {
+                var errorMSg = "The target branch '{Value1}' is invalid.";
+                errorMSg += $"{Environment.NewLine}\t       The target branch must be 'develop'.";
+                Log.Error(errorMSg, targetBranch);
+                isFailure = true;
+            }
+
+
+
+            if (isFailure)
+            {
+                Assert.Fail("The pull request status check has failed.");
+            }
+        });
+
+
+    Target ValidVersionStatusCheck => _ => _
+        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
+        .Executes(() =>
+        {
+            var releaseType = GetTargetBranch().IsMasterBranch()
                 ? ReleaseType.Production
                 : ReleaseType.Preview;
 
@@ -62,10 +110,10 @@ public partial class CICD // StatusChecks
             Log.Information(msg);
             Console.WriteLine();
             Log.Information("✅Starting Status Check . . .");
-            Log.Information("Executing On Branch: {Value}", GetBranch());
+            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
             Log.Information("Type Of Release: {Value}", releaseType);
 
-            var branch = GetBranch();
+            var branch = GetTargetBranch();
 
             if (branch.IsReleaseBranch())
             {
@@ -79,15 +127,17 @@ public partial class CICD // StatusChecks
                 return;
             }
 
-            Assert.Fail($"The branch must be a 'master' or 'release/v#.#.#' branch, but was executed on the '{GetBranch()}' branch.");
+            Assert.Fail($"The branch must be a 'master' or 'release/v#.#.#' branch, but was executed on the '{GetTargetBranch()}' branch.");
         });
 
+
     Target NoGitHubReleaseStatusCheck => _ => _
-        .Requires(() => GetBranch().IsMasterBranch() || GetBranch().IsReleaseBranch())
+        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
         .Executes(async () =>
         {
-            var version = $"v{Solution.GetProject(MainProjName).GetVersion()}";
-            var releaseType = GetBranch().IsMasterBranch()
+            var project = Solution.GetProject(MainProjName);
+            var version = $"v{(project is null ? string.Empty : project.GetVersion())}";
+            var releaseType = GetTargetBranch().IsMasterBranch()
                 ? ReleaseType.Production.ToString().ToLower()
                 : ReleaseType.Preview.ToString().ToLower();
 
@@ -98,7 +148,7 @@ public partial class CICD // StatusChecks
             Console.WriteLine();
             Log.Information("✅Starting Status Check . . .");
             Log.Information("Current Version: {Value}", version);
-            Log.Information("Executing On Branch: {Value}", GetBranch());
+            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
             Log.Information("Type Of Release: {Value}", releaseType);
 
             var releaseExists = await GitHubClient.Repository.Release.ReleaseExists(Owner, MainProjName, version);
@@ -114,11 +164,12 @@ public partial class CICD // StatusChecks
 
 
     Target ReleaseNotesExistStatusCheck => _ => _
-        .Requires(() => GetBranch().IsMasterBranch() || GetBranch().IsReleaseBranch())
+        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
         .Executes(() =>
         {
-            var version = $"v{Solution.GetProject(MainProjName).GetVersion()}";
-            var releaseType = GetBranch().IsMasterBranch()
+            var project = Solution.GetProject(MainProjName);
+            var version = $"v{(string.IsNullOrEmpty(project) ? string.Empty : project.GetVersion())}";
+            var releaseType = GetTargetBranch().IsMasterBranch()
                 ? ReleaseType.Production
                 : ReleaseType.Preview;
 
@@ -131,7 +182,7 @@ public partial class CICD // StatusChecks
             Console.WriteLine();
             Log.Information("✅Starting Status Check . . .");
             Log.Information("Current Version: {Value}", version);
-            Log.Information("Executing On Branch: {Value}", GetBranch());
+            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
             Log.Information("Type Of Release: {Value}", releaseTypeStr);
 
             if (ReleaseNotesExist(releaseType, version) is false)
@@ -143,12 +194,46 @@ public partial class CICD // StatusChecks
         });
 
 
-    Target MilestoneStateStatusCheck => _ => _
-        .Requires(() => GetBranch().IsMasterBranch() || GetBranch().IsReleaseBranch())
+    Target MilestoneExistsStatusCheck => _ => _
+        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
         .Executes(async () =>
         {
-            var version = $"v{Solution.GetProject(MainProjName).GetVersion()}";
-            var releaseType = GetBranch().IsMasterBranch()
+            var project = Solution.GetProject(MainProjName);
+            var version = $"v{(string.IsNullOrEmpty(project) ? string.Empty : project.GetVersion())}";
+            var releaseType = GetTargetBranch().IsMasterBranch()
+                ? ReleaseType.Production.ToString().ToLower()
+                : ReleaseType.Preview.ToString().ToLower();
+
+            var msg = $"💡Purpose: Verifies that the GitHub {releaseType} milestone exists.";
+            msg += $"{Environment.NewLine}\t       A milestone must exist and contain issues before a release can be performed.";
+
+            Log.Information(msg);
+            Console.WriteLine();
+            Log.Information("✅Starting Status Check . . .");
+            Log.Information("Current Version: {Value}", version);
+            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
+            Log.Information("Type Of Release: {Value}", releaseType);
+
+            var milestoneClient = GitHubClient.Issue.Milestone;
+
+            if (await milestoneClient.MilestoneExists(Owner, MainProjName, version) is false)
+            {
+                const string newMilestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
+                var errorMsg = "The milestone '{Value1}' does not exist.";
+                errorMsg += $"{Environment.NewLine}\t       To create a milestone, go to this URL here 👉🏼 {{Value2}}";
+                Log.Error(errorMsg, version, newMilestoneUrl);
+                Assert.Fail($"Milestone {version} does not exist.");
+            }
+        });
+
+
+    Target MilestoneStateStatusCheck => _ => _
+        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
+        .Executes(async () =>
+        {
+            var project = Solution.GetProject(MainProjName);
+            var version = $"v{(string.IsNullOrEmpty(project) ? string.Empty : project.GetVersion())}";
+            var releaseType = GetTargetBranch().IsMasterBranch()
                 ? ReleaseType.Production.ToString().ToLower()
                 : ReleaseType.Preview.ToString().ToLower();
 
@@ -159,13 +244,20 @@ public partial class CICD // StatusChecks
             Console.WriteLine();
             Log.Information("✅Starting Status Check . . .");
             Log.Information("Current Version: {Value}", version);
-            Log.Information("Executing On Branch: {Value}", GetBranch());
+            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
             Log.Information("Type Of Release: {Value}", releaseType);
 
             var milestoneClient = GitHubClient.Issue.Milestone;
             var milestone = await milestoneClient.GetByTitle(Owner, MainProjName, version);
 
-            if (milestone is not null)
+            if (milestone is null)
+            {
+                const string newMilestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
+                const string errorMsg = "The milestone '{{Value1}}' does not exist.  To create a new milestone, go here 👉🏼 {Value2}";
+                Log.Error(errorMsg, version, newMilestoneUrl);
+                Assert.Fail($"Could not find the milestone '{version}' to analyze its state.");
+            }
+            else
             {
                 // If all of the issues are not closed
                 if (milestone.OpenIssues > 0)
@@ -176,13 +268,16 @@ public partial class CICD // StatusChecks
                     Log.Error(errorMsg);
                     Assert.Fail($"Milestone {version} still contains open issues.");
                 }
-            }
-            else
-            {
-                Log.Error("The milestone '{Value}' does not exist.", version);
-                Assert.Fail($"Could not find the milestone '{version}' to analyze its state.");
+                else
+                {
+                    var errorMsg = $"No issues and pull requests have been added to the milestone '{version}'.";
+                    errorMsg += $"{Environment.NewLine}\t       Please add all issues and pull requests to the milestone.";
+                    Log.Error(errorMsg);
+                    Assert.Fail($"Milestone {version} does not contain any issues.");
+                }
             }
         });
+
 
     Target TagDoesNotExistStatusCheck => _ => _
         .Executes(async () =>
@@ -203,14 +298,22 @@ public partial class CICD // StatusChecks
             }
         });
 
+
+    Target ValidPreviewBranchVersionStatusCheck => _ => _
+        .Requires(() => GetTargetBranch().IsReleaseBranch())
+        .Executes(async () =>
+        {
+
+        });
+
+
     Target DebugTask => _ => _
         .Executes(async () =>
         {
-            Log.Information($"GitHubToken Is Not Null/Empty: {GitHubToken.IsNotNullOrEmpty()}");
-
-            Log.Information($"Token In GitHubActions Exists: {GitHubActions.Instance.Token.IsNotNullOrEmpty()}");
+            Log.Information($"GitHubToken Is Not Null/Empty: {GitHubToken}");
             // await CreateNewGitHubRelease(ReleaseType.Preview);
         });
+
 
     async Task ValidateBranchForStatusCheck()
     {
@@ -233,12 +336,12 @@ public partial class CICD // StatusChecks
         // If the build is on the server and the GitHubActions object exists
         if (IsServerBuild && github is not null)
         {
-            validBranch = github.IsPullRequest
+            validBranch = IsPullRequest()
                 ? github.BaseRef.IsPreviewBranch() || github.BaseRef.IsReleaseBranch() ||
                   github.BaseRef.IsDevelopBranch() || github.BaseRef.IsMasterBranch()
                 : ValidBranchForManualExecution();
 
-            branch = github.IsPullRequest ? github.BaseRef : Repo.Branch;
+            branch = IsPullRequest() ? github.BaseRef : Repo.Branch;
         }
         else if (IsLocalBuild || github is null)
         {
@@ -313,11 +416,11 @@ public partial class CICD // StatusChecks
         return 0;
     }
 
-    // TODO: Create release status check to verify that a tag does not exist already.
-        // Used by prev and prod releases.  An already created tag could interupt the release process.  Creating a release process
-
     // TODO: Add validation to release and preview release branches that a deployment of that version does not exist already
         // Example: the release branch contains the version 'v1.2.3'.  Verify that a
+
+    // TODO: Check to see if the 'tasks' in an issue can be seen in the returned JSON data, or with the Octokit issue object
+        // If so, we can check to make sure that all checkboxes (tasks) are complete in all of the issues in a milestone
 }
 
 

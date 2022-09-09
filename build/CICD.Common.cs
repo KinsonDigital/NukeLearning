@@ -89,6 +89,11 @@ public partial class CICD // Common
 
         });
 
+    bool IsPullRequest()
+    {
+        return GitHubActions.Instance is not null && GitHubActions.Instance.IsPullRequest;
+    }
+
     bool ReleaseNotesExist(ReleaseType releaseType, string version)
     {
         var releaseNotesDirPath = releaseType switch
@@ -114,7 +119,7 @@ public partial class CICD // Common
             Log.Information("Repository Owner: {Value}", gitHub.RepositoryOwner);
             Log.Information("Status Check Invoked By: {Value}", gitHub.Actor);
             Log.Information("Is Local Build: {Value}", IsLocalBuild);
-            Log.Information("Is PR: {Value}", gitHub.IsPullRequest);
+            Log.Information("Is PR: {Value}", IsPullRequest());
             Log.Information("Ref: {Value}", gitHub.Ref);
             Log.Information("Source Branch: {Value}", gitHub.HeadRef);
             Log.Information("Destination Branch: {Value}", gitHub.BaseRef);
@@ -219,22 +224,28 @@ public partial class CICD // Common
         }
     }
 
-    string GetBranch()
+    string GetTargetBranch()
     {
         if (IsServerBuild && GitHubActions.Instance is not null)
         {
-            return GitHubActions.Instance.IsPullRequest
-                ? GitHubActions.Instance.BaseRef
-                : Repo.Branch;
+            if (IsPullRequest())
+            {
+                return GitHubActions.Instance.BaseRef;
+            }
+
+            if (string.IsNullOrEmpty(Repo.Branch))
+            {
+                Assert.Fail("Cannot get branch.  Branch name is null or empty.  Maybe GIT is in the state of a detached head?");
+            }
         }
 
-        if (IsLocalBuild || GitHubActions.Instance is null)
+        if ((IsLocalBuild || GitHubActions.Instance is null) && (Repo.Branch ?? string.Empty).IsNotNullOrEmpty())
         {
-            return Repo.Branch;
+            return Repo.Branch!;
         }
 
         Assert.Fail("Could not get the correct branch.");
-        return string.Empty;
+        throw new Exception();
     }
 
     async Task CreateNewGitHubRelease(ReleaseType releaseType)

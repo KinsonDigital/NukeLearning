@@ -72,6 +72,9 @@
             "type": "string"
           }
         },
+        "PullRequestType": {
+          "type": "string"
+        },
         "Root": {
           "type": "string",
           "description": "Root directory during build execution"
@@ -89,6 +92,7 @@
               "CreateGitHubRelease",
               "CreateNugetPackage",
               "DebugTask",
+              "MilestoneExistsStatusCheck",
               "MilestoneStateStatusCheck",
               "NoGitHubReleaseStatusCheck",
               "PublishNugetPackage",
@@ -100,6 +104,8 @@
               "SendTweetAnnouncement",
               "TagDoesNotExistStatusCheck",
               "UnitTestStatusCheck",
+              "ValidFeaturePRStatusCheck",
+              "ValidPreviewBranchVersionStatusCheck",
               "ValidVersionStatusCheck"
             ]
           }
@@ -121,6 +127,7 @@
               "CreateGitHubRelease",
               "CreateNugetPackage",
               "DebugTask",
+              "MilestoneExistsStatusCheck",
               "MilestoneStateStatusCheck",
               "NoGitHubReleaseStatusCheck",
               "PublishNugetPackage",
@@ -132,6 +139,8 @@
               "SendTweetAnnouncement",
               "TagDoesNotExistStatusCheck",
               "UnitTestStatusCheck",
+              "ValidFeaturePRStatusCheck",
+              "ValidPreviewBranchVersionStatusCheck",
               "ValidVersionStatusCheck"
             ]
           }

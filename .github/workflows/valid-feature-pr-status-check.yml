@@ -1,11 +1,10 @@
-name: ✅Unit Test Status Check
+name: ✅Valid PR Status Check
 
 
 on:
   workflow_dispatch:
   pull_request:
     - feature/*-*
-
 
 # TODO: Needs to run on windows and ubuntu
 
@@ -15,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Unit Test Status Check
-        run: ./build.cmd UnitTestStatusCheck
+      - name: Run Valid Pull Request Status Check
+        run: ./build.cmd ValidFeaturePRStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
