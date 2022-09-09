@@ -1,4 +1,4 @@
-name: ✅Build Status Check
+name: ✅Valid PR Status Check
 
 
 on:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Build Status Check
-        run: ./build.cmd BuildStatusCheck
+      - name: Run Valid Pull Request Status Check
+        run: ./build.cmd ValidFeaturePRStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

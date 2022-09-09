@@ -1,8 +1,7 @@
-namespace DefaultNamespace;
+namespace NukeLearningCICD;
 
-public enum MatchType
+public enum ReleaseType
 {
-    All,
-    Start,
-    End,
+    Production,
+    Preview
 }

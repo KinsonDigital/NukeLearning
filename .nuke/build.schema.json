@@ -8,7 +8,6 @@
       "properties": {
         "Configuration": {
           "type": "string",
-          "description": "Configuration to build - Default is 'Debug' (local) or 'Release' (server)",
           "enum": [
             "Debug",
             "Release"
@@ -17,6 +16,13 @@
         "Continue": {
           "type": "boolean",
           "description": "Indicates to continue a previously failed build attempt"
+        },
+        "GitHubClient": {
+          "type": "string"
+        },
+        "GitHubToken": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
         "Help": {
           "type": "boolean",
@@ -47,6 +53,10 @@
           "type": "boolean",
           "description": "Disables displaying the NUKE logo"
         },
+        "NuGetApiKey": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
         "Partition": {
           "type": "string",
           "description": "Partition to use on CI"
@@ -62,6 +72,9 @@
             "type": "string"
           }
         },
+        "PullRequestType": {
+          "type": "string"
+        },
         "Root": {
           "type": "string",
           "description": "Root directory during build execution"
@@ -74,14 +87,26 @@
             "enum": [
               "BuildAllProjects",
               "BuildMainProject",
-              "BuildStart",
               "BuildStatusCheck",
               "BuildTestProject",
-              "CheckTag",
+              "CreateGitHubRelease",
+              "CreateNugetPackage",
+              "DebugTask",
+              "MilestoneExistsStatusCheck",
+              "MilestoneStateStatusCheck",
+              "NoGitHubReleaseStatusCheck",
+              "PublishNugetPackage",
+              "ReleaseNotesExistStatusCheck",
               "RestoreSolution",
               "RunAllUnitTests",
+              "RunPreviewRelease",
               "RunUnitTests",
-              "UnitTestStatusCheck"
+              "SendTweetAnnouncement",
+              "TagDoesNotExistStatusCheck",
+              "UnitTestStatusCheck",
+              "ValidFeaturePRStatusCheck",
+              "ValidPreviewBranchVersionStatusCheck",
+              "ValidVersionStatusCheck"
             ]
           }
         },
@@ -97,16 +122,44 @@
             "enum": [
               "BuildAllProjects",
               "BuildMainProject",
-              "BuildStart",
               "BuildStatusCheck",
               "BuildTestProject",
-              "CheckTag",
+              "CreateGitHubRelease",
+              "CreateNugetPackage",
+              "DebugTask",
+              "MilestoneExistsStatusCheck",
+              "MilestoneStateStatusCheck",
+              "NoGitHubReleaseStatusCheck",
+              "PublishNugetPackage",
+              "ReleaseNotesExistStatusCheck",
               "RestoreSolution",
               "RunAllUnitTests",
+              "RunPreviewRelease",
               "RunUnitTests",
-              "UnitTestStatusCheck"
+              "SendTweetAnnouncement",
+              "TagDoesNotExistStatusCheck",
+              "UnitTestStatusCheck",
+              "ValidFeaturePRStatusCheck",
+              "ValidPreviewBranchVersionStatusCheck",
+              "ValidVersionStatusCheck"
             ]
           }
+        },
+        "TwitterAccessToken": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "TwitterAccessTokenSecret": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "TwitterConsumerKey": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "TwitterConsumerSecret": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
         "Verbosity": {
           "type": "string",

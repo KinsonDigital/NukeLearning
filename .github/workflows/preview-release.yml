@@ -14,9 +14,14 @@
 # </auto-generated>
 # ------------------------------------------------------------------------------
 
+# TODO: Create different workflows for different releases and status checks
+
 name: Build_And_Test
 
-on: [push]
+
+on:
+  workflow_dispatch:
+
 
 jobs:
   ubuntu-latest:
@@ -31,7 +36,7 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
-      - name: Run './build.cmd BuildStart'
-        run: ./build.cmd BuildStart
+      - name: Run './build.cmd RunPreviewRelease'
+        run: ./build.cmd RunPreviewRelease
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
