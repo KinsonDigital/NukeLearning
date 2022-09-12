@@ -25,9 +25,12 @@ public partial class CICD : NukeBuild
     const string TestProjName = $"{MainProjName}{TestProjPostfix}";
     const string TestProjFileName = $"{TestProjName}.{ProjFileExt}";
     const string NugetOrgSource = "https://api.nuget.org/v3/index.json";
+    static string ConsoleTab = string.Empty;
+    static string FeatureBranchSyntax = string.Empty;
 
     public static int Main()
     {
+        ConsoleTab = $"{Environment.NewLine}\t       ";
         return Execute<CICD>(x => x.BuildAllProjects, x => x.RunAllUnitTests);
     }
 

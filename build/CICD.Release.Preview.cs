@@ -42,6 +42,6 @@ public partial class CICD // Release.Preview
                 Assert.Fail($"A tag with the value 'v{version}' already exists.");
             }
 
-            // TODO: Close the milestone for the preview release
+            // TODO: Close the milestone for the preview release after everything has been successful
         });
 }
