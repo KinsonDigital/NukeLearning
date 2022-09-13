@@ -25,6 +25,8 @@ public partial class CICD : NukeBuild
     const string TestProjName = $"{MainProjName}{TestProjPostfix}";
     const string TestProjFileName = $"{TestProjName}.{ProjFileExt}";
     const string NugetOrgSource = "https://api.nuget.org/v3/index.json";
+    const string ConsoleTab = "\t       ";
+    static string FeatureBranchSyntax = string.Empty;
 
     public static int Main()
     {
@@ -38,13 +40,11 @@ public partial class CICD : NukeBuild
     [NukeParameter] static GitHubClient GitHubClient = GetGitHubClient();
 
     [NukeParameter(List = false)] static readonly Configuration Configuration = GetBuildConfig();
-    [NukeParameter] [Secret] readonly string GitHubToken = GetGitHubToken();
     [NukeParameter] [Secret] readonly string NuGetApiKey;
     [NukeParameter] [Secret] readonly string TwitterConsumerKey;
     [NukeParameter] [Secret] readonly string TwitterConsumerSecret;
     [NukeParameter] [Secret] readonly string TwitterAccessToken;
     [NukeParameter] [Secret] readonly string TwitterAccessTokenSecret;
-    [NukeParameter] readonly string PullRequestType;
 
     // TODO: Setup the github client to use the github token.  If this is even required.  It might be built in
 
@@ -80,10 +80,12 @@ public partial class CICD : NukeBuild
         if (NukeBuild.IsServerBuild)
         {
             client = new GitHubClient(new ProductHeaderValue(MainProjName),
-                new InMemoryCredentialStore(new Credentials(GitHubActions.Instance.Token)));
+                new InMemoryCredentialStore(new Credentials(GetGitHubToken())));
         }
         else
         {
+            // TODO: This needs to possibly utilize the SWCM app/lib project to get the token from windows credentials.
+            // Or something similar
             client = new GitHubClient(new ProductHeaderValue(MainProjName));
         }
 

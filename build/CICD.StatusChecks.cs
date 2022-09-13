@@ -13,8 +13,6 @@ using static Nuke.Common.Tools.Git.GitTasks;
 
 namespace NukeLearningCICD;
 
-// TODO: Replace all owner and name string literals with variables
-
 public partial class CICD // StatusChecks
 {
     Target BuildStatusCheck => _ => _
@@ -47,53 +45,23 @@ public partial class CICD // StatusChecks
             Log.Information("Branch Is Valid!!");
         });
 
-    public enum BranchType
-    {
-        Master,
-        Develop,
-        Feature,
-        PreviewFeature,
-        Release,
-        Preview,
-        HotFix
-    }
-
 
     Target ValidFeaturePRStatusCheck => _ => _
-        // .Requires(() => IsPullRequest()) // TODO: Re-enable this
-        .Executes(() =>
-        {
-            var isFailure = false;
-            var targetBranch = GitHubActions.Instance.BaseRef ?? string.Empty;
-            var sourceBranch = GitHubActions.Instance.HeadRef ?? string.Empty;
-
-            // TODO: Remove this one debugging is finished
-            targetBranch = "develop";
-            sourceBranch = "feature/1-";
-
-            if (sourceBranch.IsFeatureBranch() is false)
-            {
-                var errorMSg = "The feature branch '{Value1}' is invalid.";
-                errorMSg += $"{Environment.NewLine}\t       The syntax for feature branches is 'feature/#-*'.";
-                Log.Error(errorMSg, targetBranch);
-                isFailure = true;
-            }
-
-            if (targetBranch.IsDevelopBranch() is false)
-            {
-                var errorMSg = "The target branch '{Value1}' is invalid.";
-                errorMSg += $"{Environment.NewLine}\t       The target branch must be 'develop'.";
-                Log.Error(errorMSg, targetBranch);
-                isFailure = true;
-            }
+        .Requires(
+            () => ThatRunIsForPullRequest(nameof(ValidFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatPRSourceBranchIsValid(BranchType.Feature),
+            () => ThatPRTargetBranchIsValid(BranchType.Develop),
+            () => ThatPRHasBeenAssigned()
+        );
 
 
-
-            if (isFailure)
-            {
-                Assert.Fail("The pull request status check has failed.");
-            }
-        });
+    Target ValidPreviewFeaturePRStatusCheck => _ => _
+        .Requires(
+            () => ThatRunIsForPullRequest(nameof(ValidPreviewFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatPRSourceBranchIsValid(BranchType.PreviewFeature),
+            () => ThatPRTargetBranchIsValid(BranchType.Preview),
+            () => ThatPRHasBeenAssigned()
+        );
 
 
     Target ValidVersionStatusCheck => _ => _
@@ -105,7 +73,7 @@ public partial class CICD // StatusChecks
                 : ReleaseType.Preview;
 
             var msg = "💡Purpose: Verifies that all of the versions exist in the csproj file";
-            msg += $"{Environment.NewLine}\t       and that the version syntax is correct.";
+            msg += $"{ConsoleTab}and that the version syntax is correct.";
 
             Log.Information(msg);
             Console.WriteLine();
@@ -142,7 +110,7 @@ public partial class CICD // StatusChecks
                 : ReleaseType.Preview.ToString().ToLower();
 
             var msg = $"💡Purpose: Verifies that no GitHub release already exists for the current version.";
-            msg += $"{Environment.NewLine}\t       This status check is only intended to be executed for preview and production releases.";
+            msg += $"{ConsoleTab}This status check is only intended to be executed for preview and production releases.";
 
             Log.Information(msg);
             Console.WriteLine();
@@ -156,7 +124,7 @@ public partial class CICD // StatusChecks
             if (releaseExists)
             {
                 var errorMsg = "A release for version '{Value}' already exist.";
-                errorMsg += $"{Environment.NewLine}\t       Did you forget to update the version values in the csproj file?";
+                errorMsg += $"{ConsoleTab}Did you forget to update the version values in the csproj file?";
                 Log.Error(errorMsg, version);
                 Assert.Fail($"A release for version '{version}' already exists.");
             }
@@ -176,7 +144,7 @@ public partial class CICD // StatusChecks
             var releaseTypeStr = releaseType.ToString().ToLower();
 
             var msg = $"💡Purpose: Verifies that the {releaseTypeStr} release notes exist for the current version.";
-            msg += $"{Environment.NewLine}\t       This status check is only meant to be intended for preview and production releases.";
+            msg += $"{ConsoleTab}This status check is only meant to be intended for preview and production releases.";
 
             Log.Information(msg);
             Console.WriteLine();
@@ -205,7 +173,7 @@ public partial class CICD // StatusChecks
                 : ReleaseType.Preview.ToString().ToLower();
 
             var msg = $"💡Purpose: Verifies that the GitHub {releaseType} milestone exists.";
-            msg += $"{Environment.NewLine}\t       A milestone must exist and contain issues before a release can be performed.";
+            msg += $"{ConsoleTab}A milestone must exist and contain issues before a release can be performed.";
 
             Log.Information(msg);
             Console.WriteLine();
@@ -220,7 +188,7 @@ public partial class CICD // StatusChecks
             {
                 const string newMilestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
                 var errorMsg = "The milestone '{Value1}' does not exist.";
-                errorMsg += $"{Environment.NewLine}\t       To create a milestone, go to this URL here 👉🏼 {{Value2}}";
+                errorMsg += $"{ConsoleTab}To create a milestone, go to this URL here 👉🏼 {{Value2}}";
                 Log.Error(errorMsg, version, newMilestoneUrl);
                 Assert.Fail($"Milestone {version} does not exist.");
             }
@@ -238,7 +206,7 @@ public partial class CICD // StatusChecks
                 : ReleaseType.Preview.ToString().ToLower();
 
             var msg = $"💡Purpose: Verifies that the GitHub {releaseType} milestone is in the correct state.";
-            msg += $"{Environment.NewLine}\t       This correct state means that all of the issues are closed and pull requests are merged.";
+            msg += $"{ConsoleTab}This correct state means that all of the issues are closed and pull requests are merged.";
 
             Log.Information(msg);
             Console.WriteLine();
@@ -263,15 +231,15 @@ public partial class CICD // StatusChecks
                 if (milestone.OpenIssues > 0)
                 {
                     var errorMsg = $"Some issues are still open for milestone '{version}'.";
-                    errorMsg += $"{Environment.NewLine}\t       Please close all open issues before attempting a release.";
-                    errorMsg += $"{Environment.NewLine}\t       Goto the milestone here 👉🏼 {milestone.HtmlUrl}";
+                    errorMsg += $"{ConsoleTab}Please close all open issues before attempting a release.";
+                    errorMsg += $"{ConsoleTab}Goto the milestone here 👉🏼 {milestone.HtmlUrl}";
                     Log.Error(errorMsg);
                     Assert.Fail($"Milestone {version} still contains open issues.");
                 }
                 else
                 {
                     var errorMsg = $"No issues and pull requests have been added to the milestone '{version}'.";
-                    errorMsg += $"{Environment.NewLine}\t       Please add all issues and pull requests to the milestone.";
+                    errorMsg += $"{ConsoleTab}Please add all issues and pull requests to the milestone.";
                     Log.Error(errorMsg);
                     Assert.Fail($"Milestone {version} does not contain any issues.");
                 }
@@ -292,7 +260,7 @@ public partial class CICD // StatusChecks
             if (tagExists)
             {
                 var errorMsg = "The tag '{Value}' already exists.  If doing a production or preview release, the tag must not already exist.";
-                errorMsg += $"{Environment.NewLine}\t       The tag is auto created upon release.";
+                errorMsg += $"{ConsoleTab}The tag is auto created upon release.";
                 Log.Error(errorMsg);
                 Assert.Fail($"The tag '{version}' already exists.");
             }
@@ -303,15 +271,16 @@ public partial class CICD // StatusChecks
         .Requires(() => GetTargetBranch().IsReleaseBranch())
         .Executes(async () =>
         {
-
+            // TODO: Empty.  Delete or do something with this
         });
 
 
     Target DebugTask => _ => _
         .Executes(async () =>
         {
-            Log.Information($"GitHubToken Is Not Null/Empty: {GitHubToken}");
-            // await CreateNewGitHubRelease(ReleaseType.Preview);
+            var prClient = GitHubClient.PullRequest;
+
+            var hasReviewers = await prClient.HasReviewers(Owner, MainProjName, 6);
         });
 
 
@@ -416,11 +385,6 @@ public partial class CICD // StatusChecks
         return 0;
     }
 
-    // TODO: Add validation to release and preview release branches that a deployment of that version does not exist already
-        // Example: the release branch contains the version 'v1.2.3'.  Verify that a
-
     // TODO: Check to see if the 'tasks' in an issue can be seen in the returned JSON data, or with the Octokit issue object
-        // If so, we can check to make sure that all checkboxes (tasks) are complete in all of the issues in a milestone
+    // If so, we can check to make sure that all checkboxes (tasks) are complete in all of the issues in a milestone
 }
-
-

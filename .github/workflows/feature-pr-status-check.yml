@@ -1,9 +1,11 @@
-name: 🧪API Key Test
+name: ✅Feature PR Status Check
 
 
 on:
   workflow_dispatch:
   pull_request:
+    branches:
+      - develop
 
 # TODO: Needs to run on windows and ubuntu
 
@@ -13,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Build Status Check
-        run: ./build.cmd DebugTask
+      - name: Run Feature PR Status Check
+        run: ./build.cmd ValidFeaturePRStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

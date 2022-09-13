@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -19,10 +20,16 @@ namespace NukeLearningCICD;
 
 public static class ExtensionMethods
 {
+    private static readonly char[] Digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', };
     private const char MatchNumbers = '#';
     private const char MatchAnything = '*';
 
     public static bool IsNotNullOrEmpty(this string value) => !string.IsNullOrEmpty(value);
+
+    public static bool ContainsNumbers(this string value) => Digits.Any(value.Contains);
+
+    public static bool DoesNotContainNumbers(this string value)
+        => !ContainsNumbers(value);
 
     public static bool IsOnCorrectBranch(this GitRepository repo, string branchPattern)
     {
@@ -259,7 +266,9 @@ public static class ExtensionMethods
     {
         try
         {
-            _ = await issueClient.Get(owner, name, issueNumber);
+            var result = await issueClient.Get(owner, name, issueNumber);
+
+            return result.PullRequest is null;
         }
         catch (NotFoundException e)
         {
@@ -267,6 +276,42 @@ public static class ExtensionMethods
         }
 
         return true;
+    }
+
+    public static async Task<bool> HasReviewers(
+        this IPullRequestsClient prClient,
+        string owner,
+        string name,
+        int prNumber)
+    {
+        try
+        {
+            var pr = await prClient.Get(owner, name, prNumber);
+
+            return pr is not null && pr.RequestedReviewers.Count >= 1;
+        }
+        catch (NotFoundException e)
+        {
+            return false;
+        }
+    }
+
+    public static async Task<bool> HasAssignees(
+        this IPullRequestsClient prClient,
+        string owner,
+        string name,
+        int prNumber)
+    {
+        try
+        {
+            var pr = await prClient.Get(owner, name, prNumber);
+
+            return pr is not null && pr.Assignees.Count >= 1;
+        }
+        catch (NotFoundException e)
+        {
+            return false;
+        }
     }
 
     public static async Task<bool> ReleaseExists(

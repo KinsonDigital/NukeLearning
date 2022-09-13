@@ -1,74 +1,54 @@
-# Feature Branches
+# Feature Branches PR Status Check
 
-## PR Status Checks
-
-- [x] Check that all projects build
-- [x] Check that all unit tests pass
-- [x] Check that the destination branch is develop
 - [x] Check that the source branch is a valid feature branch
-- [ ] Check that the issue number in the branch is an issue that exists
-  - Make sure to print a message to let the user know about the issue and that the branch needs to be recreated
-- [ ] PR is linked to an issue
-- [ ] PR title matches the title of the linked issue
-- [ ] PR is assigned to a project
-- [ ] Labels of the PR match the labels of the issue.  (The pr should always match the issue)
-- [ ] The pr must have a reviewer
-- [ ] The pr must be assigned
+- [x] Check that the target branch is a develop branch
+- [x] Check that the issue number in the branch is an issue that exists
+- [x] The pr must be assigned
+- [x] Real world testing complete
 
 
 
-# Preview Feature Branches
+# Preview Feature PR Status Check
 
-## Status Checks
-
-- [ ] Check that all projects build
-- [ ] Check that all unit tests pass
-- [ ] Check that the destination branch is a preview branch
-- [ ] Check that verifies that branch syntax is correct
-- [ ] Check that the issue number in the branch is an issue that exists
+- [x] Check that the source branch is a preview feature branch
+- [x] Check that the target branch is a preview branch
+- [x] Check that the issue number in the preview feature branch is an issue that exists
+- [x] The pr must be assigned
+- [ ] Real world testing complete
 
 
+# Production Release PR Status Check
 
-# Release Branches
-
-## Status Checks
-
-- [ ] Check that all projects build
-- [ ] Check that all unit tests pass
 - [ ] Versions are valid in csproj
-- [ ] Release branch name is valid
-- [ ] Validate 'v#.#.#' section of the release branch 
-   - A version from csproj
+- [ ] Check that the source branch is a valid release branch
+- [ ] Check that the target branch is a master branch
+- [ ] Validate 'v#.#.#' section of the release branch matches version in csproj
 - [ ] Check that a GitHub milestone has been created
 - [ ] Check that a GitHub release does not already exist
 - [ ] Check that a tag that matches the csproj version does not already exist
-- [ ] Check that the release notes exist.  (Not preview release notes)
+- [ ] Check that the release notes exist.  (Not prev release notes)
 - [ ] Check that the release notes contain at least one issue number for each issue in the milestone
-- [ ] Check that the destination branch is master for PRs
 - [ ] Nuget package release does not exist yet
+- [ ] Real world testing complete
 
 
-# Preview Release Branches
+# Preview Release PR Status Check
 
-## Status Checks
-
-- [ ] Check that all projects build
-- [ ] Check that all unit tests pass
 - [ ] Versions are valid in csproj
-- [ ] Preview branch name is valid
-- [ ] Validate 'v#.#.#-preview.#' section of the preview release branch 
-   - A version from csproj
+- [ ] Check that the source branch is a valid preview release branch
+- [ ] Check that the target branch is a release branch
+- [ ] Verify that the `v#.#.#` section of the preview branch (source) matches the `v#.#.#` section of the release branch (target)
+- [ ] Validate 'v#.#.#-preview.#' section of the preview branch (source) matches version in csproj
 - [ ] Check that a GitHub milestone has been created
 - [ ] Check that a GitHub release does not already exist
 - [ ] Check that a tag that matches the csproj version does not already exist
-- [ ] Check that the release notes exist.  (Not preview release notes)
+- [ ] Check that the release notes exist.  (Not prod release notes)
 - [ ] Check that the release notes contain at least one issue number for each issue in the milestone
-- [ ] Check that the destination branch is a preview branch for PRs
 - [ ] Nuget package release does not exist yet
+- [ ] Real world testing complete
 
 
-
-# Preview Releases
+# Preview Release Workflow
 
 - [ ] Everything builds
 - [ ] Unit tests pass
@@ -81,10 +61,10 @@
 - [ ] GitHub release does not exist yet
 - [ ] Milestone exists
 - [ ] Milestone state is validated
+- [ ] Real world testing complete
 
 
-
-# Production Releases
+# Production Release Workflow
 
 - [ ] Everything builds
 - [ ] Unit tests pass
@@ -97,3 +77,4 @@
 - [ ] GitHub release does not exist yet
 - [ ] Milestone exists
 - [ ] Milestone state is validated
+- [ ] Real world testing complete
