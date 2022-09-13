@@ -671,7 +671,7 @@ public partial class CICD // Common
     {
         var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
         var targetBranch = GitHubActions.Instance?.BaseRef ?? string.Empty;
-        string errorMsg;
+        var errors = new List<string>();
 
         Log.Information("Checking that the version section for the preview release PR source and target branches match.");
 
@@ -685,36 +685,42 @@ public partial class CICD // Common
 
         if (sourceBranch.IsPreviewBranch() is false)
         {
-            errorMsg = $"The pull request source branch '{sourceBranch}' must be a preview branch.";
+            var errorMsg = $"The pull request source branch '{sourceBranch}' must be a preview branch.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}Preview branch syntax is 'preview/v#.#.#-preview.#'";
-            Log.Error(errorMsg);
-            Assert.Fail("The pull request source branch is invalid.");
-            return false;
+            errors.Add(errorMsg);
         }
 
         if (targetBranch.IsReleaseBranch() is false)
         {
-            errorMsg = $"The pull request target branch '{targetBranch}' must be a release branch.";
+            var errorMsg = $"The pull request target branch '{targetBranch}' must be a release branch.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}Release branch syntax is 'release/v#.#.#'";
-            Log.Error(errorMsg);
-            Assert.Fail("The pull request target branch is invalid.");
-            return false;
+            errors.Add(errorMsg);
         }
 
-        var srcBranchVersionSection = sourceBranch.Split('/')[1].Split('-')[0];
-        var targetBranchVersionSection = targetBranch.Split('/')[1];
+        var srcBranchVersionSection = sourceBranch.Contains('/') && sourceBranch.Contains('-') && sourceBranch.Length > 3
+            ? sourceBranch.Split('/')[1].Split('-')[0]
+            : string.Empty;
+        var targetBranchVersionSection = sourceBranch.Contains('/') && sourceBranch.Length > 3
+            ? targetBranch.Split('/')[1]
+            : string.Empty;
 
-        if (srcBranchVersionSection != targetBranchVersionSection)
+        if (srcBranchVersionSection != targetBranchVersionSection ||
+            (string.IsNullOrEmpty(srcBranchVersionSection) && string.IsNullOrEmpty(targetBranchVersionSection)))
         {
-            errorMsg = $"The main version sections of the source branch '{sourceBranch}' and the target branch '{targetBranch}' do not match.";
+            var errorMsg = $"The main version sections of the source branch '{sourceBranch}' and the target branch '{targetBranch}' do not match.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}Source Branch Syntax: 'preview/v#.#.#-preview.#'";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}Target Branch Syntax: 'release/v#.#.#'";
-            Log.Error(errorMsg);
-            Assert.Fail("The version sections of the source and target branch do not match.");
-            return false;
+            errors.Add(errorMsg);
         }
 
-        return true;
+        if (errors.Count <= 0)
+        {
+            return true;
+        }
+
+        errors.PrintErrors("There is an issue with the version in the csproj file.");
+
+        return false;
     }
 
     bool ThatTheProjectVersionsAreValid(ReleaseType releaseType)

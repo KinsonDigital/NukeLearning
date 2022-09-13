@@ -6,9 +6,9 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <Version>1.2.4-preview.1</Version>
-        <FileVersion>1.2.4-preview.1</FileVersion>
-        <AssemblyVersion>1.2.4</AssemblyVersion>
+        <Version>1.2.3-preview.5</Version>
+        <FileVersion>1.2.3-preview.5</FileVersion>
+        <AssemblyVersion>1.2.3</AssemblyVersion>
     </PropertyGroup>
 
 </Project>
