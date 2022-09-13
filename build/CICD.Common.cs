@@ -376,7 +376,7 @@ public partial class CICD // Common
         {
             var prLink = $"https://github.com/{Owner}/{MainProjName}/pull/{prNumber}";
             var errorMsg = "The pull request '{Value1}' is not assigned to anyone.";
-            errorMsg += $"{ConsoleTab}To set an assignee, go to 👉🏼 '{{Value2}}'.";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To set an assignee, go to 👉🏼 '{{Value2}}'.";
             Log.Error(errorMsg, prNumber, prLink);
             Assert.Fail("The pull request is not assigned to anybody.");
         }
@@ -402,7 +402,7 @@ public partial class CICD // Common
         {
             var prLink = $"https://github.com/{Owner}/{MainProjName}/pull/{prNumber}";
             var errorMsg = "The pull request '{Value1}' does not have any labels.";
-            errorMsg += $"{ConsoleTab}To add a label, go to 👉🏼 '{{Value2}}'.";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To add a label, go to 👉🏼 '{{Value2}}'.";
             Log.Error(errorMsg, prNumber, prLink);
             Assert.Fail("The pull request does not have one or more labels.");
         }
@@ -430,7 +430,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The development branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for the develop branch is 'develop'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for the develop branch is 'develop'.";
                 }
                 break;
             case BranchType.Master:
@@ -443,7 +443,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The production branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for the production branch is 'master'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for the production branch is 'master'.";
                 }
                 break;
             case BranchType.Feature:
@@ -456,7 +456,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
                 }
                 break;
             case BranchType.PreviewFeature:
@@ -469,7 +469,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The preview feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
                 }
                 break;
             case BranchType.Release:
@@ -482,7 +482,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The release branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
                 }
                 break;
             case BranchType.Preview:
@@ -495,7 +495,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The preview branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
                 }
                 break;
             case BranchType.HotFix:
@@ -508,7 +508,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The hotfix branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
                 }
                 break;
             default:
@@ -555,15 +555,15 @@ public partial class CICD // Common
                     else
                     {
                         errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
-                        errorMsg += $"{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
-                        errorMsg += $"{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
+                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
+                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
                         Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
                     }
                 }
                 else
                 {
                     errorMsg = "The feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
                 }
                 break;
             case BranchType.PreviewFeature:
@@ -580,15 +580,15 @@ public partial class CICD // Common
                     else
                     {
                         errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
-                        errorMsg += $"{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
-                        errorMsg += $"{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
+                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
+                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
                         Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
                     }
                 }
                 else
                 {
                     errorMsg = "The preview feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
                 }
                 break;
             case BranchType.Release:
@@ -601,7 +601,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The release branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
                 }
                 break;
             case BranchType.Preview:
@@ -614,7 +614,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The preview branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
                 }
                 break;
             case BranchType.HotFix:
@@ -627,7 +627,7 @@ public partial class CICD // Common
                 else
                 {
                     errorMsg = "The hotfix branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
                 }
                 break;
             default:
