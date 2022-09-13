@@ -94,7 +94,7 @@ public partial class CICD // Common
         return GitHubActions.Instance is not null && GitHubActions.Instance.IsPullRequest;
     }
 
-    bool ThatRunIsForPullRequest(string runName, RunType runType)
+    bool ThatTheWorkflowRunIsForAPullRequest(string runName, RunType runType)
     {
         var isPullRequest = IsPullRequest();
 
@@ -358,7 +358,7 @@ public partial class CICD // Common
         return (await issueClient.IssueExists(Owner, MainProjName, issueNumber), issueNumber);
     }
 
-    bool ThatPRHasBeenAssigned()
+    bool ThatThePRHasBeenAssigned()
     {
         var prClient = GitHubClient.PullRequest;
 
@@ -410,7 +410,39 @@ public partial class CICD // Common
         return true;
     }
 
-    bool ThatPRTargetBranchIsValid(BranchType branchType)
+    bool ThatThePRHasTheLabel(string labelName)
+    {
+        var prNumber = GitHubActions.Instance?.PullRequestNumber ?? -1;
+        var labelExists = false;
+
+        Log.Information("Checking if the pull request has a preview release label.");
+
+        if (prNumber is -1)
+        {
+            const string errorMsg = "The pr number could not be found.  This must only run as a pull request in GitHub, not locally.";
+            Log.Error(errorMsg);
+            Assert.Fail("The workflow is not being executed as a pull request in the GitHub environment.");
+        }
+
+        labelExists = GitHubClient.PullRequest.LabelExists(Owner, MainProjName, prNumber, labelName).Result;
+
+        if (labelExists)
+        {
+            Log.Information($"{ConsoleTab}✅The pull request '{prNumber}' has a preview label.");
+        }
+        else
+        {
+            var prLink = $"https://github.com/{Owner}/{MainProjName}/pull/{prNumber}";
+            var errorMsg = $"The pull request '{{Value1}}' does not have the preview release label '{labelName}'.";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To add the label, go to 👉🏼 '{{Value2}}'.";
+            Log.Error(errorMsg, prNumber, prLink);
+            Assert.Fail("The pull request does not have a preview release label.");
+        }
+
+        return true;
+    }
+
+    bool ThatThePRTargetBranchIsValid(BranchType branchType)
     {
         var targetBranch = GitHubActions.Instance?.BaseRef ?? string.Empty;
         var errorMsg = string.Empty;
@@ -526,7 +558,7 @@ public partial class CICD // Common
         return false;
     }
 
-    bool ThatPRSourceBranchIsValid(BranchType branchType)
+    bool ThatThePRSourceBranchIsValid(BranchType branchType)
     {
         var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
         var errorMsg = string.Empty;

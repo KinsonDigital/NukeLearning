@@ -48,23 +48,31 @@ public partial class CICD // StatusChecks
 
     Target FeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatRunIsForPullRequest(nameof(FeaturePRStatusCheck), RunType.StatusCheck),
-            () => ThatPRSourceBranchIsValid(BranchType.Feature),
-            () => ThatPRTargetBranchIsValid(BranchType.Develop),
-            () => ThatPRHasBeenAssigned(),
+            () => ThatTheWorkflowRunIsForAPullRequest(nameof(FeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatThePRSourceBranchIsValid(BranchType.Feature),
+            () => ThatThePRTargetBranchIsValid(BranchType.Develop),
+            () => ThatThePRHasBeenAssigned(),
             () => ThatPRHasLabels()
         );
 
 
     Target PreviewFeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatRunIsForPullRequest(nameof(PreviewFeaturePRStatusCheck), RunType.StatusCheck),
-            () => ThatPRSourceBranchIsValid(BranchType.PreviewFeature),
-            () => ThatPRTargetBranchIsValid(BranchType.Preview),
-            () => ThatPRHasBeenAssigned(),
+            () => ThatTheWorkflowRunIsForAPullRequest(nameof(PreviewFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatThePRSourceBranchIsValid(BranchType.PreviewFeature),
+            () => ThatThePRTargetBranchIsValid(BranchType.Preview),
+            () => ThatThePRHasBeenAssigned(),
             () => ThatPRHasLabels()
         );
 
+    Target PrevReleasePRStatusCheck => _ => _
+        .Requires(
+            () => ThatTheWorkflowRunIsForAPullRequest(nameof(PrevReleasePRStatusCheck), RunType.StatusCheck),
+            () => ThatThePRSourceBranchIsValid(BranchType.Preview),
+            () => ThatThePRTargetBranchIsValid(BranchType.Release),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatThePRHasTheLabel("🚀Preview Release")
+        );
 
     Target ValidVersionStatusCheck => _ => _
         .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
@@ -280,9 +288,13 @@ public partial class CICD // StatusChecks
     Target DebugTask => _ => _
         .Executes(async () =>
         {
+            var client = GitHubClient.Issue;
+            var labelClient = client.Labels;
+            var hasPreviewReleaseLabel = await labelClient.LabelExists(Owner, MainProjName, 11, "🚀Preview Release");
+
             var prClient = GitHubClient.PullRequest;
 
-            var hasReviewers = await prClient.HasReviewers(Owner, MainProjName, 6);
+            var pr = await prClient.Get(Owner, MainProjName, 11);
         });
 
 

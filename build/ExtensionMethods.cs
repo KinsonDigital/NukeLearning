@@ -232,18 +232,42 @@ public static class ExtensionMethods
     }
 
     public static async Task<bool> TagExists(
-        this IRepositoriesClient repoClient,
+        this IRepositoriesClient client,
         string repoOwner,
         string repoName,
         string tag)
     {
-        var tags = await repoClient.GetAllTags(repoOwner, repoName);
+        var tags = await client.GetAllTags(repoOwner, repoName);
 
         var foundTag = (from t in tags
             where t.Name == tag
             select t).FirstOrDefault();
 
         return foundTag is not null;
+    }
+
+    public static async Task<bool> LabelExists(
+        this IIssuesLabelsClient client,
+        string repoOwner,
+        string repoName,
+        int issueNumber,
+        string labelName)
+    {
+        var issueLabels = await client.GetAllForIssue(repoOwner, repoName, issueNumber);
+
+        return issueLabels.Any(l => l.Name == labelName);
+    }
+
+    public static async Task<bool> LabelExists(
+        this IPullRequestsClient client,
+        string repoOwner,
+        string repoName,
+        int prNumber,
+        string labelName)
+    {
+        var pr = await client.Get(repoOwner, repoName, prNumber);
+
+        return pr.Labels.Any(l => l.Name == labelName);
     }
 
     public static async Task<bool> TagDoesNotExist(
@@ -259,14 +283,14 @@ public static class ExtensionMethods
         => gitHubActions.IsPullRequest is false && gitHubActions.EventName == "workflow_dispatch";
 
     public static async Task<bool> IssueExists(
-        this IIssuesClient issueClient,
+        this IIssuesClient client,
         string owner,
         string name,
         int issueNumber)
     {
         try
         {
-            var result = await issueClient.Get(owner, name, issueNumber);
+            var result = await client.Get(owner, name, issueNumber);
 
             return result.PullRequest is null;
         }
@@ -279,14 +303,14 @@ public static class ExtensionMethods
     }
 
     public static async Task<bool> HasReviewers(
-        this IPullRequestsClient prClient,
+        this IPullRequestsClient client,
         string owner,
         string name,
         int prNumber)
     {
         try
         {
-            var pr = await prClient.Get(owner, name, prNumber);
+            var pr = await client.Get(owner, name, prNumber);
 
             return pr is not null && pr.RequestedReviewers.Count >= 1;
         }
@@ -297,14 +321,14 @@ public static class ExtensionMethods
     }
 
     public static async Task<bool> HasAssignees(
-        this IPullRequestsClient prClient,
+        this IPullRequestsClient client,
         string owner,
         string name,
         int prNumber)
     {
         try
         {
-            var pr = await prClient.Get(owner, name, prNumber);
+            var pr = await client.Get(owner, name, prNumber);
 
             return pr is not null && pr.Assignees.Count >= 1;
         }
@@ -315,14 +339,14 @@ public static class ExtensionMethods
     }
 
     public static async Task<bool> HasLabels(
-        this IPullRequestsClient prClient,
+        this IPullRequestsClient client,
         string owner,
         string name,
         int prNumber)
     {
         try
         {
-            var pr = await prClient.Get(owner, name, prNumber);
+            var pr = await client.Get(owner, name, prNumber);
 
             return pr is not null && pr.Labels.Count >= 1;
         }
