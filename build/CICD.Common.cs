@@ -394,7 +394,7 @@ public partial class CICD // Common
             ? -1
             : (int)(GitHubActions.Instance.PullRequestNumber);
 
-        if (prClient.HasAssignees(Owner, MainProjName, prNumber).Result)
+        if (prClient.HasLabels(Owner, MainProjName, prNumber).Result)
         {
             Log.Information($"{ConsoleTab}✅The pull request '{prNumber}' has labels.");
         }
