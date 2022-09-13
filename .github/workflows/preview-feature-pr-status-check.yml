@@ -1,11 +1,10 @@
-name: ✅Build Status Check
+name: ✅Preview Feature PR Status Check
 
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Add manual inputs or remove
   pull_request:
     branches:
-      - develop
       - release/v*.*.*-preview.*
 
 # TODO: Needs to run on windows and ubuntu
@@ -16,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Build Status Check
-        run: ./build.cmd BuildStatusCheck
+      - name: Run Feature PR Status Check
+        run: ./build.cmd PreviewFeaturePRStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
