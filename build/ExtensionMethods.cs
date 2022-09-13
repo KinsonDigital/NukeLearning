@@ -314,6 +314,24 @@ public static class ExtensionMethods
         }
     }
 
+    public static async Task<bool> HasLabels(
+        this IPullRequestsClient prClient,
+        string owner,
+        string name,
+        int prNumber)
+    {
+        try
+        {
+            var pr = await prClient.Get(owner, name, prNumber);
+
+            return pr is not null && pr.Labels.Count >= 1;
+        }
+        catch (NotFoundException e)
+        {
+            return false;
+        }
+    }
+
     public static async Task<bool> ReleaseExists(
         this IReleasesClient client,
         string owner,

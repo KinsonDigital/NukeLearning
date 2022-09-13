@@ -46,21 +46,23 @@ public partial class CICD // StatusChecks
         });
 
 
-    Target ValidFeaturePRStatusCheck => _ => _
+    Target FeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatRunIsForPullRequest(nameof(ValidFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatRunIsForPullRequest(nameof(FeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatPRSourceBranchIsValid(BranchType.Feature),
             () => ThatPRTargetBranchIsValid(BranchType.Develop),
-            () => ThatPRHasBeenAssigned()
+            () => ThatPRHasBeenAssigned(),
+            () => ThatPRHasLabels()
         );
 
 
-    Target ValidPreviewFeaturePRStatusCheck => _ => _
+    Target PreviewFeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatRunIsForPullRequest(nameof(ValidPreviewFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatRunIsForPullRequest(nameof(PreviewFeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatPRSourceBranchIsValid(BranchType.PreviewFeature),
             () => ThatPRTargetBranchIsValid(BranchType.Preview),
-            () => ThatPRHasBeenAssigned()
+            () => ThatPRHasBeenAssigned(),
+            () => ThatPRHasLabels()
         );
 
 

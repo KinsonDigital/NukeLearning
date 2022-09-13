@@ -4,6 +4,7 @@
 - [x] Check that the target branch is a develop branch
 - [x] Check that the issue number in the branch is an issue that exists
 - [x] The pr must be assigned
+- [ ] Labels are added to the PR
 - [x] Real world testing complete
 
 
@@ -14,6 +15,7 @@
 - [x] Check that the target branch is a preview branch
 - [x] Check that the issue number in the preview feature branch is an issue that exists
 - [x] The pr must be assigned
+- [ ] Labels are added to the PR
 - [ ] Real world testing complete
 
 
