@@ -6,7 +6,7 @@ on:
   pull_request:
     branches:
       - develop
-      - release/v*.*.*-preview.*
+      - preview/v*.*.*-preview.*
 
 # TODO: Needs to run on windows and ubuntu
 

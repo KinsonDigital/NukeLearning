@@ -5,7 +5,7 @@ on:
   workflow_dispatch: # Add manual inputs or remove
   pull_request:
     branches:
-      - release/v*.*.*-preview.*
+      - preview/v*.*.*-preview.*
 
 # TODO: Needs to run on windows and ubuntu
 
