@@ -47,9 +47,8 @@ public partial class CICD // StatusChecks
 
 
     Target ValidFeaturePRStatusCheck => _ => _
-        .DependsOn(BuildAllProjects, RunAllUnitTests)
         .Requires(
-            () => ThatPRIsFor(nameof(ValidFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatRunIsForPullRequest(nameof(ValidFeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatPRSourceBranchIsValid(BranchType.Feature),
             () => ThatPRTargetBranchIsValid(BranchType.Develop),
             () => ThatPRHasBeenAssigned()
@@ -58,7 +57,7 @@ public partial class CICD // StatusChecks
 
     Target ValidPreviewFeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatPRIsFor(nameof(ValidPreviewFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatRunIsForPullRequest(nameof(ValidPreviewFeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatPRSourceBranchIsValid(BranchType.PreviewFeature),
             () => ThatPRTargetBranchIsValid(BranchType.Preview),
             () => ThatPRHasBeenAssigned()

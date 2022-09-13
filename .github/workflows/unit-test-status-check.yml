@@ -3,8 +3,9 @@ name: ✅Unit Test Status Check
 
 on:
   workflow_dispatch:
-#  pull_request:
-#    - feature/*-*
+  pull_request:
+    branches:
+      - develop
 
 
 # TODO: Needs to run on windows and ubuntu

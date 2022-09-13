@@ -94,23 +94,26 @@ public partial class CICD // Common
         return GitHubActions.Instance is not null && GitHubActions.Instance.IsPullRequest;
     }
 
-    bool ThatPRIsFor(string runName, RunType runType)
+    bool ThatRunIsForPullRequest(string runName, RunType runType)
     {
         var isPullRequest = IsPullRequest();
 
-        if (isPullRequest is false)
+        Log.Information("Checking if run is a pull request run.");
+        if (isPullRequest)
         {
-            var errorMsg = "";
-            Log.Error(errorMsg);
-
-            var failMsg = runType switch
+            Log.Information($"{ConsoleTab}✅Valid run executed for '{runType}'");
+        }
+        else
+        {
+            var errorMsg = runType switch
             {
                 RunType.StatusCheck => $"Running '{runName}' can only be done with status checks.",
                 RunType.Release => $"Running '{runName}' can only be done with releases.",
                 _ => throw new ArgumentOutOfRangeException("")
             };
 
-            Assert.Fail(failMsg);
+            Log.Error(errorMsg);
+            Assert.Fail($"{ConsoleTab}Not executed from a pull request.");
         }
 
         return true;
@@ -125,9 +128,24 @@ public partial class CICD // Common
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
         };
 
-        return (from f in Glob.Files(releaseNotesDirPath, "*.md")
+        Log.Information($"Checking if the '{releaseType}' release notes exist.");
+
+        var notesExist = (from f in Glob.Files(releaseNotesDirPath, "*.md")
             where f.Contains(version)
             select f).Any();
+
+        if (notesExist)
+        {
+            Log.Information($"{ConsoleTab}✅The release notes for the '{releaseType}' release exist in the directory '{releaseNotesDirPath}'");
+        }
+        else
+        {
+            var errorMsg = $"The '{releaseType}' release notes could not be found in the directory '{releaseNotesDirPath}'.";
+            Log.Error(errorMsg);
+            Assert.Fail("Release notes could not be found.");
+        }
+
+        return notesExist;
     }
 
     void PrintPullRequestInfo()
@@ -333,79 +351,28 @@ public partial class CICD // Common
 
     async Task<(bool isValid, int issueNum)> BranchIssueNumberValid(BranchType branchType)
     {
-        var sourceBranch = GitHubActions.Instance?.HeadRef ?? "preview/feature/55-my-preview-feature"; // string.Empty;
+        var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
         var issueClient = GitHubClient.Issue;
         var issueNumber = ExtractIssueNumber(branchType, sourceBranch);
 
         return (await issueClient.IssueExists(Owner, MainProjName, issueNumber), issueNumber);
     }
 
-    bool ThatPRTargetBranchIsValid(BranchType branchType)
-    {
-        var targetBranch = GitHubActions.Instance?.BaseRef ?? string.Empty;
-        string errorMsg;
-        var invalidBranch = false;
-
-        switch (branchType)
-        {
-            case BranchType.Develop:
-                invalidBranch = !targetBranch.IsDevelopBranch();
-                errorMsg = "The development branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for the develop branch is 'develop'.";
-                break;
-            case BranchType.Master:
-                invalidBranch = !targetBranch.IsDevelopBranch();
-                errorMsg = "The production branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for the production branch is 'master'.";
-                break;
-            case BranchType.Feature:
-                invalidBranch = !targetBranch.IsFeatureBranch();
-                errorMsg = "The feature branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
-                break;
-            case BranchType.PreviewFeature:
-                invalidBranch = !targetBranch.IsPreviewFeatureBranch();
-                errorMsg = "The preview feature branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
-                break;
-            case BranchType.Release:
-                invalidBranch = !targetBranch.IsReleaseBranch();
-                errorMsg = "The release branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
-                break;
-            case BranchType.Preview:
-                invalidBranch = !targetBranch.IsPreviewBranch();
-                errorMsg = "The preview branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
-                break;
-            case BranchType.HotFix:
-                invalidBranch = !targetBranch.IsHotFixBranch();
-                errorMsg = "The hotfix branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null);
-        }
-
-        if (invalidBranch)
-        {
-            Log.Error(errorMsg, targetBranch);
-            var runType = IsPullRequest() ? "pull request" : "manual";
-            Assert.Fail($"Invalid target branch for the {runType} run.");
-        }
-
-        return true;
-    }
-
     bool ThatPRHasBeenAssigned()
     {
         var prClient = GitHubClient.PullRequest;
+
+        Log.Information("Checking if the pull request as been assigned to someone.");
 
         var prNumber = GitHubActions.Instance is null || GitHubActions.Instance.PullRequestNumber is null
             ? -1
             : (int)(GitHubActions.Instance.PullRequestNumber);
 
-        if (prClient.HasAssignees(Owner, MainProjName, prNumber).Result is false)
+        if (prClient.HasAssignees(Owner, MainProjName, prNumber).Result)
+        {
+            Log.Information($"{ConsoleTab}✅The pull request '{prNumber}' is properly assigned.");
+        }
+        else
         {
             var prLink = $"https://github.com/{Owner}/{MainProjName}/pull/{prNumber}";
             var errorMsg = "The pull request '{Value1}' is not assigned to anyone.";
@@ -417,11 +384,129 @@ public partial class CICD // Common
         return true;
     }
 
+    bool ThatPRTargetBranchIsValid(BranchType branchType)
+    {
+        var targetBranch = GitHubActions.Instance?.BaseRef ?? string.Empty;
+        var errorMsg = string.Empty;
+        var isValidBranch = false;
+
+        Log.Information($"Checking if pull request target branch '{targetBranch}' is valid.");
+
+        switch (branchType)
+        {
+            case BranchType.Develop:
+                isValidBranch = targetBranch.IsDevelopBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
+                }
+                else
+                {
+                    errorMsg = "The development branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for the develop branch is 'develop'.";
+                }
+                break;
+            case BranchType.Master:
+                isValidBranch = targetBranch.IsDevelopBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
+                }
+                else
+                {
+                    errorMsg = "The production branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for the production branch is 'master'.";
+                }
+                break;
+            case BranchType.Feature:
+                isValidBranch = targetBranch.IsFeatureBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
+                }
+                else
+                {
+                    errorMsg = "The feature branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
+                }
+                break;
+            case BranchType.PreviewFeature:
+                isValidBranch = targetBranch.IsPreviewFeatureBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
+                }
+                else
+                {
+                    errorMsg = "The preview feature branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
+                }
+                break;
+            case BranchType.Release:
+                isValidBranch = targetBranch.IsReleaseBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
+                }
+                else
+                {
+                    errorMsg = "The release branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
+                }
+                break;
+            case BranchType.Preview:
+                isValidBranch = targetBranch.IsPreviewBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
+                }
+                else
+                {
+                    errorMsg = "The preview branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
+                }
+                break;
+            case BranchType.HotFix:
+                isValidBranch = targetBranch.IsHotFixBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
+                }
+                else
+                {
+                    errorMsg = "The hotfix branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null);
+        }
+
+        if (isValidBranch)
+        {
+            return true;
+        }
+
+        Log.Error(errorMsg, targetBranch);
+        var runType = IsPullRequest() ? "pull request" : "manual";
+        Assert.Fail($"Invalid target branch for the {runType} run.");
+        return false;
+    }
+
     bool ThatPRSourceBranchIsValid(BranchType branchType)
     {
         var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
         var errorMsg = string.Empty;
-        var invalidBranch = false;
+        var isValidBranch = false;
+
+        Log.Information("Validating PR Source Branch:");
 
         switch (branchType)
         {
@@ -431,18 +516,42 @@ public partial class CICD // Common
                 Log.Error(errorMsg);
                 break;
             case BranchType.Feature:
-                invalidBranch = !sourceBranch.IsFeatureBranch();
+                isValidBranch = sourceBranch.IsFeatureBranch();
 
-                if (invalidBranch)
+                if (isValidBranch)
+                {
+                    var validIssueNumResult = BranchIssueNumberValid(branchType).Result;
+
+                    if (validIssueNumResult.isValid)
+                    {
+                        Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
+                    }
+                    else
+                    {
+                        errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
+                        errorMsg += $"{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
+                        errorMsg += $"{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
+                        Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
+                    }
+                }
+                else
                 {
                     errorMsg = "The feature branch '{Value}' is invalid.";
                     errorMsg += $"{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
                 }
-                else
+                break;
+            case BranchType.PreviewFeature:
+                isValidBranch = sourceBranch.IsPreviewFeatureBranch();
+
+                if (isValidBranch)
                 {
                     var validIssueNumResult = BranchIssueNumberValid(branchType).Result;
 
-                    if (validIssueNumResult.isValid is false)
+                    if (validIssueNumResult.isValid)
+                    {
+                        Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
+                    }
+                    else
                     {
                         errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
                         errorMsg += $"{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
@@ -450,53 +559,62 @@ public partial class CICD // Common
                         Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
                     }
                 }
-                break;
-            case BranchType.PreviewFeature:
-                invalidBranch = !sourceBranch.IsPreviewFeatureBranch();
-
-                if (invalidBranch)
+                else
                 {
                     errorMsg = "The preview feature branch '{Value}' is invalid.";
                     errorMsg += $"{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
                 }
-                else
-                {
-                    var validIssueNumResult = BranchIssueNumberValid(branchType).Result;
-
-                    if (validIssueNumResult.isValid is false)
-                    {
-                        errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
-                        errorMsg += $"{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
-                        errorMsg += $"{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
-                        Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
-                    }
-                }
                 break;
             case BranchType.Release:
-                invalidBranch = !sourceBranch.IsReleaseBranch();
-                errorMsg = "The release branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
+                isValidBranch = sourceBranch.IsReleaseBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
+                }
+                else
+                {
+                    errorMsg = "The release branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
+                }
                 break;
             case BranchType.Preview:
-                invalidBranch = !sourceBranch.IsPreviewBranch();
-                errorMsg = "The preview branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
+                isValidBranch = sourceBranch.IsPreviewBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
+                }
+                else
+                {
+                    errorMsg = "The preview branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
+                }
                 break;
             case BranchType.HotFix:
-                invalidBranch = !sourceBranch.IsHotFixBranch();
-                errorMsg = "The hotfix branch '{Value}' is invalid.";
-                errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
+                isValidBranch = sourceBranch.IsHotFixBranch();
+
+                if (isValidBranch)
+                {
+                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
+                }
+                else
+                {
+                    errorMsg = "The hotfix branch '{Value}' is invalid.";
+                    errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null);
         }
 
-        if (invalidBranch)
+        if (isValidBranch)
         {
-            Log.Error(errorMsg, sourceBranch);
-            Assert.Fail("Invalid pull request source branch.");
+            return true;
         }
 
-        return true;
+        Log.Error(errorMsg, sourceBranch);
+        Assert.Fail("Invalid pull request source branch.");
+        return false;
     }
 }

@@ -4,7 +4,7 @@
 - [x] Check that the target branch is a develop branch
 - [x] Check that the issue number in the branch is an issue that exists
 - [x] The pr must be assigned
-- [ ] Real world testing complete
+- [x] Real world testing complete
 
 
 
