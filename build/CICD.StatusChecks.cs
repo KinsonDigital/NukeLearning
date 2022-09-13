@@ -51,7 +51,8 @@ public partial class CICD // StatusChecks
             () => ThatRunIsForPullRequest(nameof(FeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatPRSourceBranchIsValid(BranchType.Feature),
             () => ThatPRTargetBranchIsValid(BranchType.Develop),
-            () => ThatPRHasBeenAssigned()
+            () => ThatPRHasBeenAssigned(),
+            () => ThatPRHasLabels()
         );
 
 
@@ -60,7 +61,8 @@ public partial class CICD // StatusChecks
             () => ThatRunIsForPullRequest(nameof(PreviewFeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatPRSourceBranchIsValid(BranchType.PreviewFeature),
             () => ThatPRTargetBranchIsValid(BranchType.Preview),
-            () => ThatPRHasBeenAssigned()
+            () => ThatPRHasBeenAssigned(),
+            () => ThatPRHasLabels()
         );
 
 

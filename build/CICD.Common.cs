@@ -384,6 +384,32 @@ public partial class CICD // Common
         return true;
     }
 
+    bool ThatPRHasLabels()
+    {
+        var prClient = GitHubClient.PullRequest;
+
+        Log.Information("Checking if the pull request has labels.");
+
+        var prNumber = GitHubActions.Instance is null || GitHubActions.Instance.PullRequestNumber is null
+            ? -1
+            : (int)(GitHubActions.Instance.PullRequestNumber);
+
+        if (prClient.HasAssignees(Owner, MainProjName, prNumber).Result)
+        {
+            Log.Information($"{ConsoleTab}✅The pull request '{prNumber}' has labels.");
+        }
+        else
+        {
+            var prLink = $"https://github.com/{Owner}/{MainProjName}/pull/{prNumber}";
+            var errorMsg = "The pull request '{Value1}' does not have any labels.";
+            errorMsg += $"{ConsoleTab}To add a label, go to 👉🏼 '{{Value2}}'.";
+            Log.Error(errorMsg, prNumber, prLink);
+            Assert.Fail("The pull request does not have one or more labels.");
+        }
+
+        return true;
+    }
+
     bool ThatPRTargetBranchIsValid(BranchType branchType)
     {
         var targetBranch = GitHubActions.Instance?.BaseRef ?? string.Empty;
