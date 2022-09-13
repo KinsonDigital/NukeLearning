@@ -1,15 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.Tools.GitHub;
-using Octokit;
 using Serilog;
-using Serilog.Events;
-using static Nuke.Common.Tools.Git.GitTasks;
 
 namespace NukeLearningCICD;
 
@@ -71,7 +64,20 @@ public partial class CICD // StatusChecks
             () => ThatThePRSourceBranchIsValid(BranchType.Preview),
             () => ThatThePRTargetBranchIsValid(BranchType.Release),
             () => ThatThePRHasBeenAssigned(),
-            () => ThatThePRHasTheLabel("🚀Preview Release")
+            () => ThatThePRHasTheLabel("🚀Preview Release"),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Preview),
+            () => ThatThePreviewPRBranchVersionsMatch(),
+            () => ThatThePRSourceBranchVersionSectionMatchesProjectVersion(ReleaseType.Preview),
+            () => ThatTheReleaseMilestoneExists(),
+            () => ThatTheReleaseMilestoneContainsIssues(),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(),
+            () => ThatTheReleaseMilestoneOnlyContainsSingleReleaseToDoIssue(ReleaseType.Preview),
+            () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Preview),
+            () => ThatTheReleaseNotesExist(ReleaseType.Preview),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Preview),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Preview),
+            () => NugetPackageDoesNotExist()
         );
 
     Target ValidVersionStatusCheck => _ => _
@@ -286,15 +292,11 @@ public partial class CICD // StatusChecks
 
 
     Target DebugTask => _ => _
+        // .Requires(
+        //     () => NugetPackageExists()
+        // )
         .Executes(async () =>
         {
-            var client = GitHubClient.Issue;
-            var labelClient = client.Labels;
-            var hasPreviewReleaseLabel = await labelClient.LabelExists(Owner, MainProjName, 11, "🚀Preview Release");
-
-            var prClient = GitHubClient.PullRequest;
-
-            var pr = await prClient.Get(Owner, MainProjName, 11);
         });
 
 

@@ -1,13 +1,10 @@
-using System;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
-using Nuke.Common.Tools.GitHub;
 using Octokit;
 using Octokit.Internal;
-using Serilog;
 using NukeParameter = Nuke.Common.ParameterAttribute;
 
 namespace NukeLearningCICD;
@@ -67,6 +64,10 @@ public partial class CICD : NukeBuild
         if (NukeBuild.IsServerBuild)
         {
             return GitHubActions.Instance.Token;
+        }
+        else
+        {
+            return "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";
         }
 
         return "local-fake-token";

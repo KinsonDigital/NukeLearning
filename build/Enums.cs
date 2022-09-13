@@ -14,7 +14,8 @@ public enum BranchType
     PreviewFeature,
     Release,
     Preview,
-    HotFix
+    HotFix,
+    Other,
 }
 
 public enum RunType

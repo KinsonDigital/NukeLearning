@@ -7,6 +7,7 @@ on:
     branches:
       - develop
       - preview/v*.*.*-preview.*
+      - release/v*.*.*
 
 # TODO: Needs to run on windows and ubuntu
 
