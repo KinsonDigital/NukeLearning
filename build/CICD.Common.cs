@@ -677,10 +677,7 @@ public partial class CICD // Common
 
         if (string.IsNullOrEmpty(sourceBranch) || string.IsNullOrEmpty(targetBranch))
         {
-            errorMsg = "The workflow must be executed from a pull request in the GitHub environment.";
-            Log.Error(errorMsg);
-            Assert.Fail("The workflow was executed from the wrong environment and context.");
-            return false;
+            errors.Add("The workflow must be executed from a pull request in the GitHub environment.");
         }
 
         if (sourceBranch.IsPreviewBranch() is false)
