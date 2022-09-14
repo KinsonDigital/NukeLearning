@@ -493,7 +493,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The issue has no labels or something else went wrong.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -533,7 +533,7 @@ public partial class CICD // Common
 
         if (prNumber is -1)
         {
-            const string errorMsg = "The pr number could not be found.  This must only run as a pull request in GitHub, not locally.";
+            const string errorMsg = "The pull request number could not be found.  This must only run as a pull request in GitHub, not locally.";
             Log.Error(errorMsg);
             Assert.Fail("The workflow is not being executed as a pull request in the GitHub environment.");
         }
@@ -678,7 +678,7 @@ public partial class CICD // Common
         var errorMsg = string.Empty;
         var isValidBranch = false;
 
-        Log.Information("Validating PR Source Branch:");
+        Log.Information("ValidatingPull RequestSource Branch:");
 
         switch (branchType)
         {
@@ -797,7 +797,7 @@ public partial class CICD // Common
         var errors = new List<string>();
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the version section for the {releaseType} release PR source and target branches match.{Environment.NewLine}");
+        Log.Information($"Checking that the version section for the {releaseType} release pull request source and target branches match.{Environment.NewLine}");
 
         if (string.IsNullOrEmpty(sourceBranch) || string.IsNullOrEmpty(targetBranch))
         {
@@ -867,7 +867,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("There is an issue with the version in the csproj file.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -967,7 +967,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("Project versions are invalid.");
+        errors.PrintErrors();
 
         return errors.Count <= 0;
     }
@@ -978,7 +978,7 @@ public partial class CICD // Common
         var errors = new List<string>();
 
         var introMsg = "Checking that the project version matches the version section";
-        introMsg += $" of the PR source {releaseType.ToString().ToLower()} branch.";
+        introMsg += $" of the pull request source {releaseType.ToString().ToLower()} branch.";
         introMsg += $"{Environment.NewLine}{ConsoleTab}This validation is only checked for preview and release source branches.{Environment.NewLine}";
         Log.Information(introMsg);
 
@@ -1013,7 +1013,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The pull request source branch version section does not match the set project version.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -1048,7 +1048,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The release milestone does not exist.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -1093,7 +1093,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The release milestone does not contain any issues.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -1163,7 +1163,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The release milestone does not contain a release todo issue.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -1174,7 +1174,7 @@ public partial class CICD // Common
         var errors = new List<string>();
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the release milestone only contains a single release PR item.{Environment.NewLine}");
+        Log.Information($"Checking that the release milestone only contains a single release pull request item.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1195,7 +1195,7 @@ public partial class CICD // Common
             errors.Add(errorMsg);
         }
 
-        var issues = issueClient.IssuesForMilestone(Owner, MainProjName, mileStoneTitle).Result;
+        var issues = issueClient.PullRequestsForMilestone(Owner, MainProjName, mileStoneTitle).Result;
 
         if (issues.Length <= 0)
         {
@@ -1241,7 +1241,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The release milestone does not contain a release pull request.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -1365,7 +1365,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The milestone contains 1 or more issues with no labels.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -1562,7 +1562,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("A GitHub release already exists for the currently set version.");
+        errors.PrintErrors();
 
         return false;
     }
@@ -1599,7 +1599,7 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The nuget package already exists.");
+        errors.PrintErrors();
 
         return false;
     }

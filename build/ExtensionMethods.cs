@@ -640,7 +640,7 @@ public static class ExtensionMethods
             errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
             errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
             errorMsg += $"{indent}Labels ({issue.Labels.Count}){(issue.Labels.Count <= 0 ? string.Empty : ":")}";
-            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  `{l.Name}`");
+            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  - `{l.Name}`");
             Log.Error(errorMsg);
         }
     }
@@ -659,7 +659,7 @@ public static class ExtensionMethods
             errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
             errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
             errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
-            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  `{l.Name}`");
+            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  - `{l.Name}`");
             Log.Information(errorMsg);
         }
     }
