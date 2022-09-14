@@ -19,3 +19,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Build Status Check
         run: ./build.cmd BuildStatusCheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
