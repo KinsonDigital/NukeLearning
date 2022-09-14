@@ -9,6 +9,7 @@ using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tools.DotNet;
+using Nuke.Common.Utilities.Collections;
 using Octokit;
 using Serilog;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
@@ -1152,7 +1153,7 @@ public partial class CICD // Common
             errorMsg += $"{Environment.NewLine}{ConsoleTab}Release ToDo Issue Requirements:";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}  - Title must be equal to '{issueTitleAndLabel}'";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}  - Contain only a single '{issueTitleAndLabel}' label";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab}  - Only contain 1 release todo issue.";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}  - The milestone should only contain 1 release todo issue.";
 
             errors.Add(errorMsg);
         }
@@ -1189,7 +1190,7 @@ public partial class CICD // Common
         if (milestone is null)
         {
             const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
-            var errorMsg = $"Cannot check a milestone that does not exist.";
+            var errorMsg = "Cannot check a milestone that does not exist.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);
         }
@@ -1198,7 +1199,7 @@ public partial class CICD // Common
 
         if (issues.Length <= 0)
         {
-            var errorMsg = $"The milestone does not contain any pull requests.";
+            var errorMsg = "The milestone does not contain any pull requests.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab} To view the milestone, go here 👉🏼 {milestone?.HtmlUrl}";
             errors.Add(errorMsg);
         }
@@ -1210,17 +1211,29 @@ public partial class CICD // Common
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
         };
 
-        var totalReleasePullRequests = issues.Count(i => i.IsReleasePullRequest(releaseType));
+        var allReleasePullRequests = issues.Where(i => i.IsReleasePullRequest(releaseType)).ToArray();
+        var indent = Environment.NewLine + ConsoleTab;
 
-        if (totalReleasePullRequests == 0 || totalReleasePullRequests > 1)
+        if (allReleasePullRequests.Length != 1)
         {
-            var errorMsg = $"The {releaseTypeStr} release milestone '{mileStoneTitle}' does not contain, or has too many release pull requests.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab}Release Pull Request Requirements:";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab}  - Title must be equal to '{releaseLabel}'";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab}  - Contain only a single '{releaseLabel}' label";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab}  - Only contain 1 release pull request.";
+            var errorMsg =
+                $"The {releaseTypeStr} release milestone '{mileStoneTitle}' has '{allReleasePullRequests.Length}' release pull requests.";
+            errorMsg += $"{indent}Release milestones should only have a single release pull request.";
+            errorMsg += $"{indent}Release Pull Request Requirements:";
+            errorMsg += $"{indent}  - Title must be equal to '{releaseLabel}'";
+            errorMsg += $"{indent}  - Contain only a single '{releaseLabel}' label";
+            errorMsg += $"{indent}  - The milestone should only contain 1 release pull request.";
 
             errors.Add(errorMsg);
+        }
+
+        if (allReleasePullRequests.Length == 1)
+        {
+            allReleasePullRequests.LogIssuesAsInfo();
+        }
+        else
+        {
+            allReleasePullRequests.LogIssuesAsError();
         }
 
         if (errors.Count <= 0)
@@ -1238,7 +1251,7 @@ public partial class CICD // Common
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
 
-        Log.Information($"Checking that all of the release milestone issues and pull requests are closed.");
+        Log.Information("Checking that all of the release milestone issues and pull requests are closed.");
 
         if (project is null)
         {

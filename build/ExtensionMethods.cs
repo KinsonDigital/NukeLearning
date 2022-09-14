@@ -9,6 +9,7 @@ using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Utilities;
+using Nuke.Common.Utilities.Collections;
 using Octokit;
 using Serilog;
 using static Nuke.Common.Tools.Git.GitTasks;
@@ -576,26 +577,61 @@ public static class ExtensionMethods
 
     public static bool IsReleasePullRequest(this Issue issue, ReleaseType releaseType)
     {
-        var releaseTitle = releaseType switch
-        {
-            ReleaseType.Preview => "Preview Release",
-            ReleaseType.Production => "Production Release",
-            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null),
-        };
-
-        var releaseLabel = releaseType switch
+        var releaseLabelOrTitle = releaseType switch
         {
             ReleaseType.Preview => "🚀Preview Release",
             ReleaseType.Production => "🚀Production Release",
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null),
         };
 
-        var hasValidTitle = issue.Title == releaseTitle;
+        var hasValidTitle = issue.Title == releaseLabelOrTitle;
         var hasSingleLabel = issue.Labels.Count == 1;
         var isPullRequest = issue.PullRequest is not null;
-        var validLabelType = issue.Labels.Count >= 1 && issue.Labels[0].Name == releaseLabel;
+        var validLabelType = issue.Labels.Count == 1 && issue.Labels[0].Name == releaseLabelOrTitle;
 
         return hasValidTitle  && hasSingleLabel && isPullRequest && validLabelType;
+    }
+
+    public static void LogIssueAsError(this Issue issue)
+    {
+        var indent = Environment.NewLine + "\t       ";
+        var errorMsg = $"PR Number: {issue.Number}";
+        errorMsg += $"{indent}PR Title: {issue.Title}";
+        errorMsg += $"{indent}PR Url: {issue.HtmlUrl}";
+        errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
+        issue.Labels.ForEach(l => errorMsg += $"{indent}\t  {l.Name}");
+
+        Log.Error(errorMsg);
+    }
+
+    public static void LogIssuesAsError(this Issue[] issues)
+    {
+        var indent = Environment.NewLine + "\t       ";
+
+        foreach (var issue in issues)
+        {
+            var errorMsg = $"PR Number: {issue.Number}";
+            errorMsg += $"{indent}PR Title: {issue.Title}";
+            errorMsg += $"{indent}PR Url: {issue.HtmlUrl}";
+            errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
+            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  `{l.Name}`");
+            Log.Error(errorMsg);
+        }
+    }
+
+    public static void LogIssuesAsInfo(this Issue[] issues)
+    {
+        var indent = Environment.NewLine + "\t       ";
+
+        foreach (var issue in issues)
+        {
+            var errorMsg = $"PR Number: {issue.Number}";
+            errorMsg += $"{indent}PR Title: {issue.Title}";
+            errorMsg += $"{indent}PR Url: {issue.HtmlUrl}";
+            errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
+            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  `{l.Name}`");
+            Log.Information(errorMsg);
+        }
     }
 
     public static string GetReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)

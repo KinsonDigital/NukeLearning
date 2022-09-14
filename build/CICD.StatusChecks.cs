@@ -338,7 +338,7 @@ public partial class CICD // StatusChecks
 
     Target DebugTask => _ => _
         .Requires(
-            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Preview, true)
+            () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Preview)
         )
         .Executes(async () =>
         {
