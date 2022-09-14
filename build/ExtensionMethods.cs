@@ -409,10 +409,32 @@ public static class ExtensionMethods
         issueRequest.Filter = IssueFilter.All;
         issueRequest.State = ItemStateFilter.All;
 
-        var issues = await client.GetAllForRepository(owner, name, issueRequest);
-        var issuesForMilestone = issues.Where(i => i.Milestone is not null && i.Milestone.Title == mileStoneName).ToArray();
+        var issues = (await client.GetAllForRepository(owner, name, issueRequest))
+            .Where(i =>
+                i.PullRequest is null &&
+                i.Milestone is not null &&
+                i.Milestone.Title == mileStoneName).ToArray();
 
-        return issuesForMilestone;
+        return issues;
+    }
+
+    public static async Task<Issue[]> PullRequestsForMilestone(
+        this IIssuesClient client,
+        string owner,
+        string name,
+        string mileStoneName)
+    {
+        var issueRequest = new RepositoryIssueRequest();
+        issueRequest.Filter = IssueFilter.All;
+        issueRequest.State = ItemStateFilter.All;
+
+        var pullRequests = (await client.GetAllForRepository(owner, name, issueRequest))
+            .Where(i =>
+                i.PullRequest is not null &&
+                i.Milestone is not null &&
+                i.Milestone.Title == mileStoneName).ToArray();
+
+        return pullRequests;
     }
 
     public static async Task<bool> HasReviewers(
@@ -592,42 +614,50 @@ public static class ExtensionMethods
         return hasValidTitle  && hasSingleLabel && isPullRequest && validLabelType;
     }
 
-    public static void LogIssueAsError(this Issue issue)
+    public static void LogAsError(this Issue issue)
     {
         var indent = Environment.NewLine + "\t       ";
         var errorMsg = $"PR Number: {issue.Number}";
         errorMsg += $"{indent}PR Title: {issue.Title}";
-        errorMsg += $"{indent}PR Url: {issue.HtmlUrl}";
-        errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
+        errorMsg += $"{indent}{(issue.PullRequest is null ? "Issue" : "PR")} Url: {issue.HtmlUrl}";
+        errorMsg += $"{indent}Labels ({issue.Labels.Count}){(issue.Labels.Count <= 0 ? string.Empty : ":")}";
         issue.Labels.ForEach(l => errorMsg += $"{indent}\t  {l.Name}");
 
         Log.Error(errorMsg);
     }
 
-    public static void LogIssuesAsError(this Issue[] issues)
+    public static void LogAsError(this IReadOnlyList<Issue> issues)
     {
         var indent = Environment.NewLine + "\t       ";
 
+        var totalIssues = issues.ToArray().Length;
+        var errorMsg = totalIssues <= 1 ? "--Single Issue--" : "--List Of Issues--";
+
         foreach (var issue in issues)
         {
-            var errorMsg = $"PR Number: {issue.Number}";
-            errorMsg += $"{indent}PR Title: {issue.Title}";
-            errorMsg += $"{indent}PR Url: {issue.HtmlUrl}";
-            errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
+            var prOrIssuePrefix = issue.PullRequest is null ? "Issue" : "PR";
+            errorMsg += $"{indent}{prOrIssuePrefix} Number: {issue.Number}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
+            errorMsg += $"{indent}Labels ({issue.Labels.Count}){(issue.Labels.Count <= 0 ? string.Empty : ":")}";
             issue.Labels.ForEach(l => errorMsg += $"{indent}\t  `{l.Name}`");
             Log.Error(errorMsg);
         }
     }
 
-    public static void LogIssuesAsInfo(this Issue[] issues)
+    public static void LogAsInfo(this IReadOnlyList<Issue> issues)
     {
         var indent = Environment.NewLine + "\t       ";
 
+        var totalIssues = issues.ToArray().Length;
+        var errorMsg = totalIssues <= 1 ? "--Single Issue--" : "--List Of Issues--";
+
         foreach (var issue in issues)
         {
-            var errorMsg = $"PR Number: {issue.Number}";
-            errorMsg += $"{indent}PR Title: {issue.Title}";
-            errorMsg += $"{indent}PR Url: {issue.HtmlUrl}";
+            var prOrIssuePrefix = issue.PullRequest is null ? "Issue" : "PR";
+            errorMsg += $"{indent}{prOrIssuePrefix} Number: {issue.Number}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
             errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
             issue.Labels.ForEach(l => errorMsg += $"{indent}\t  `{l.Name}`");
             Log.Information(errorMsg);
@@ -672,7 +702,7 @@ public static class ExtensionMethods
         return File.ReadAllText(fullFilePath);
     }
 
-    public static void PrintErrors(this IEnumerable<string>? errors, string failMsg)
+    public static void PrintErrors(this IEnumerable<string>? errors, string? failMsg = null)
     {
         var errorList = errors is null
             ? Array.Empty<string>()
@@ -687,7 +717,10 @@ public static class ExtensionMethods
             Log.Error($"{error}{Environment.NewLine}");
         }
 
-        Assert.Fail(failMsg);
+        if (failMsg is not null)
+        {
+            Assert.Fail(failMsg);
+        }
     }
 
     /// <summary>

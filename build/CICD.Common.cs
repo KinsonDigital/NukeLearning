@@ -100,7 +100,7 @@ public partial class CICD // Common
     {
         var isPullRequest = IsPullRequest();
 
-        Log.Information("Checking if run is a pull request run.");
+        Log.Information($"Checking if run is a pull request run.{Environment.NewLine}");
         if (isPullRequest)
         {
             Log.Information($"{ConsoleTab}✅Valid run executed for '{runType}'");
@@ -130,7 +130,7 @@ public partial class CICD // Common
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
         };
 
-        Log.Information($"Checking if the '{releaseType}' release notes exist.");
+        Log.Information($"Checking if the '{releaseType}' release notes exist.{Environment.NewLine}");
 
         return (from f in Glob.Files(releaseNotesDirPath, "*.md")
             where f.Contains(version)
@@ -355,7 +355,7 @@ public partial class CICD // Common
     {
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the {releaseTypeStr} has not been executed from a pull request.");
+        Log.Information($"Checking that the {releaseTypeStr} has not been executed from a pull request.{Environment.NewLine}");
 
         if (IsPullRequest())
         {
@@ -370,7 +370,7 @@ public partial class CICD // Common
     {
         var prClient = GitHubClient.PullRequest;
 
-        Log.Information("Checking if the pull request as been assigned to someone.");
+        Log.Information($"Checking if the pull request as been assigned to someone.{Environment.NewLine}");
 
         var prNumber = GitHubActions.Instance is null || GitHubActions.Instance.PullRequestNumber is null
             ? -1
@@ -395,7 +395,7 @@ public partial class CICD // Common
     bool ThatFeaturePRIssueNumberExists()
     {
         var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
-        Log.Information("Checking that the issue number in the feature branch exists.");
+        Log.Information($"Checking that the issue number in the feature branch exists.{Environment.NewLine}");
 
         var branchIssueNumber = ExtractIssueNumber(BranchType.Feature, sourceBranch);
         var issueExists = GitHubClient.Issue.IssueExists(Owner, MainProjName, branchIssueNumber).Result;
@@ -418,7 +418,7 @@ public partial class CICD // Common
     bool ThatPreviewFeaturePRIssueNumberExists()
     {
         var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
-        Log.Information("Checking that the issue number in the preview feature branch exists.");
+        Log.Information($"Checking that the issue number in the preview feature branch exists.{Environment.NewLine}");
 
         var branchIssueNumber = ExtractIssueNumber(BranchType.PreviewFeature, sourceBranch);
         var issueExists = GitHubClient.Issue.IssueExists(Owner, MainProjName, branchIssueNumber).Result;
@@ -450,7 +450,7 @@ public partial class CICD // Common
         };
         var branchTypeStr = branchType.ToString().ToSpaceDelimitedSections().ToLower();
 
-        Log.Information($"Checking that the issue number in the '{branchTypeStr}' branch exists.");
+        Log.Information($"Checking that the issue number in the '{branchTypeStr}' branch exists.{Environment.NewLine}");
 
         // If the branch type is invalid
         if (validBranchTypes.Contains(branchType) is false)
@@ -502,7 +502,7 @@ public partial class CICD // Common
     {
         var prClient = GitHubClient.PullRequest;
 
-        Log.Information("Checking if the pull request has labels.");
+        Log.Information($"Checking if the pull request has labels.{Environment.NewLine}");
 
         var prNumber = GitHubActions.Instance is null || GitHubActions.Instance.PullRequestNumber is null
             ? -1
@@ -529,7 +529,7 @@ public partial class CICD // Common
         var prNumber = GitHubActions.Instance?.PullRequestNumber ?? -1;
         var labelExists = false;
 
-        Log.Information("Checking if the pull request has a preview release label.");
+        Log.Information($"Checking if the pull request has a preview release label.{Environment.NewLine}");
 
         if (prNumber is -1)
         {
@@ -562,7 +562,7 @@ public partial class CICD // Common
         var errorMsg = string.Empty;
         var isValidBranch = false;
 
-        Log.Information($"Checking if pull request target branch '{targetBranch}' is valid.");
+        Log.Information($"Checking if pull request target branch '{targetBranch}' is valid.{Environment.NewLine}");
 
         switch (branchType)
         {
@@ -797,7 +797,7 @@ public partial class CICD // Common
         var errors = new List<string>();
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the version section for the {releaseType} release PR source and target branches match.");
+        Log.Information($"Checking that the version section for the {releaseType} release PR source and target branches match.{Environment.NewLine}");
 
         if (string.IsNullOrEmpty(sourceBranch) || string.IsNullOrEmpty(targetBranch))
         {
@@ -877,7 +877,7 @@ public partial class CICD // Common
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
 
-        Log.Information("Checking that all of the versions in the csproj file are valid.");
+        Log.Information($"Checking that all of the versions in the csproj file are valid.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -979,7 +979,7 @@ public partial class CICD // Common
 
         var introMsg = "Checking that the project version matches the version section";
         introMsg += $" of the PR source {releaseType.ToString().ToLower()} branch.";
-        introMsg += $"{Environment.NewLine}{ConsoleTab}This validation is only checked for preview and release source branches.";
+        introMsg += $"{Environment.NewLine}{ConsoleTab}This validation is only checked for preview and release source branches.{Environment.NewLine}";
         Log.Information(introMsg);
 
         if (string.IsNullOrEmpty(sourceBranch))
@@ -1023,7 +1023,7 @@ public partial class CICD // Common
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
 
-        Log.Information($"Checking that the release milestone exists for the current version.");
+        Log.Information($"Checking that the release milestone exists for the current version.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1039,7 +1039,7 @@ public partial class CICD // Common
         {
             const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
             var errorMsg = $"The milestone for version '{projectVersion}' does not exist.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab} To create a milestone, go here 👉🏼 {milestoneUrl}";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);
         }
 
@@ -1058,7 +1058,7 @@ public partial class CICD // Common
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
 
-        Log.Information($"Checking that the release milestone current version contains issues.");
+        Log.Information($"Checking that the release milestone current version contains issues.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1074,7 +1074,7 @@ public partial class CICD // Common
         {
             const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
             var errorMsg = $"The milestone for version '{projectVersion}' does not exist.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab} To create a milestone, go here 👉🏼 {milestoneUrl}";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);
         }
 
@@ -1104,7 +1104,7 @@ public partial class CICD // Common
         var errors = new List<string>();
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the release milestone only contains a single release todo issue item.");
+        Log.Information($"Checking that the release milestone only contains a single release todo issue item.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1130,7 +1130,7 @@ public partial class CICD // Common
         if (issues.Length <= 0)
         {
             var errorMsg = $"The milestone does not contain any issues.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab} To view the milestone, go here 👉🏼 {milestone?.HtmlUrl}";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {milestone?.HtmlUrl}";
             errors.Add(errorMsg);
         }
 
@@ -1174,7 +1174,7 @@ public partial class CICD // Common
         var errors = new List<string>();
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the release milestone only contains a single release PR item.");
+        Log.Information($"Checking that the release milestone only contains a single release PR item.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1200,7 +1200,7 @@ public partial class CICD // Common
         if (issues.Length <= 0)
         {
             var errorMsg = "The milestone does not contain any pull requests.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab} To view the milestone, go here 👉🏼 {milestone?.HtmlUrl}";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {milestone?.HtmlUrl}";
             errors.Add(errorMsg);
         }
 
@@ -1229,11 +1229,11 @@ public partial class CICD // Common
 
         if (allReleasePullRequests.Length == 1)
         {
-            allReleasePullRequests.LogIssuesAsInfo();
+            allReleasePullRequests.LogAsInfo();
         }
         else
         {
-            allReleasePullRequests.LogIssuesAsError();
+            allReleasePullRequests.LogAsError();
         }
 
         if (errors.Count <= 0)
@@ -1251,7 +1251,7 @@ public partial class CICD // Common
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
 
-        Log.Information("Checking that all of the release milestone issues and pull requests are closed.");
+        Log.Information($"Checking that all of the release milestone issues are closed.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1260,22 +1260,16 @@ public partial class CICD // Common
 
         var projectVersion = project?.GetVersion() ?? string.Empty;
 
-        var totalOpenIssues = -1;
-
         var milestoneUrl = GitHubClient.Issue.Milestone.GetHtmlUrl(Owner, MainProjName, $"v{projectVersion}").Result;
 
-        var milestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, $"v{projectVersion}").Result;
+        var openMilestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, $"v{projectVersion}")
+            .Result
+            .Where(i => !i.IsReleaseToDoIssue(releaseType) && i.State == ItemState.Open).ToArray();
 
-        var issuesToCheck = milestoneIssues.Where(i => skipReleaseToDoIssues
-            ? !i.IsReleaseToDoIssue(releaseType)
-            : i.IsReleaseToDoIssue(releaseType)).ToArray();
-
-        totalOpenIssues = issuesToCheck.Count(i => i.State == ItemState.Open);
-
-        if (totalOpenIssues > 0)
+        if (openMilestoneIssues.Length > 0)
         {
             var errorMsg = $"The milestone for version '{projectVersion}' contains opened issues.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab} To view the opened issues for the milestone, go here 👉🏼 {milestoneUrl}";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To view the opened issues for the milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);
         }
 
@@ -1284,7 +1278,46 @@ public partial class CICD // Common
             return true;
         }
 
-        errors.PrintErrors("The release milestone does not contain any issues.");
+        errors.PrintErrors();
+        openMilestoneIssues.LogAsError();
+
+        return false;
+    }
+
+    bool ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType releaseType, bool skipReleaseToDoPullRequests)
+    {
+        var project = Solution.GetProject(MainProjName);
+        var errors = new List<string>();
+
+        Log.Information($"Checking that all of the release milestone pull requests are closed.{Environment.NewLine}");
+
+        if (project is null)
+        {
+            errors.Add($"Could not find the project '{MainProjName}'");
+        }
+
+        var projectVersion = project?.GetVersion() ?? string.Empty;
+
+        var milestoneUrl = GitHubClient.Issue.Milestone.GetHtmlUrl(Owner, MainProjName, $"v{projectVersion}").Result;
+
+        var openMilestonePullRequests = GitHubClient.Issue.PullRequestsForMilestone(Owner, MainProjName, $"v{projectVersion}")
+            .Result
+            .Where(i => !i.IsReleasePullRequest(releaseType) && i.State == ItemState.Open).ToArray();
+
+        if (openMilestonePullRequests.Length > 0)
+        {
+            var errorMsg = $"The milestone for version '{projectVersion}' contains opened pull requests.";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To view the opened pull requests for the milestone, go here 👉🏼 {milestoneUrl}";
+            errors.Add(errorMsg);
+        }
+
+        if (errors.Count <= 0)
+        {
+            return true;
+        }
+
+        errors.PrintErrors();
+        openMilestonePullRequests.LogAsError();
 
         return false;
     }
@@ -1294,7 +1327,7 @@ public partial class CICD // Common
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
 
-        Log.Information($"Checking that all issues in the milestone have a label.");
+        Log.Information($"Checking that all issues in the milestone have a label.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1344,7 +1377,7 @@ public partial class CICD // Common
 
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that a {releaseTypeStr} release tag that matches the set project version does not already exist.");
+        Log.Information($"Checking that a {releaseTypeStr} release tag that matches the set project version does not already exist.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1360,7 +1393,7 @@ public partial class CICD // Common
         {
             var tagUrl = $"https://github.com/{Owner}/{MainProjName}/tree/{projectVersion}";
             var errorMsg = $"The {releaseTypeStr} release tag '{projectVersion}' already exists.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab} To view the tag, go here 👉🏼 {tagUrl}";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab}To view the tag, go here 👉🏼 {tagUrl}";
             errors.Add(errorMsg);
         }
 
@@ -1381,7 +1414,7 @@ public partial class CICD // Common
 
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the release notes for the {releaseTypeStr} release exist.");
+        Log.Information($"Checking that the release notes for the {releaseTypeStr} release exist.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1419,7 +1452,7 @@ public partial class CICD // Common
 
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the {releaseTypeStr} release notes contain the release issues.");
+        Log.Information($"Checking that the {releaseTypeStr} release notes contain the release issues.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1486,7 +1519,7 @@ public partial class CICD // Common
 
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        Log.Information($"Checking that the {releaseTypeStr} GitHub release does not already exist.");
+        Log.Information($"Checking that the {releaseTypeStr} GitHub release does not already exist.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1539,7 +1572,7 @@ public partial class CICD // Common
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
 
-        Log.Information($"Checking that the nuget package does not already exist.");
+        Log.Information($"Checking that the nuget package does not already exist.{Environment.NewLine}");
 
         if (project is null)
         {
@@ -1547,7 +1580,6 @@ public partial class CICD // Common
         }
 
         var projectVersion = project?.GetVersion() ?? string.Empty;
-        projectVersion = "1.2.4-preview.1";
 
         // TODO: This package name might be the owner.reponame.  It could be something different entirely
         const string packageName = MainProjName;

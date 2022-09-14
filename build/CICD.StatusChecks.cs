@@ -92,6 +92,7 @@ public partial class CICD // StatusChecks
             () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
             () => ThatAllMilestoneIssuesHaveLabels(),
             () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Preview, true),
+            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Preview, true),
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleaseToDoIssue(ReleaseType.Preview),
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Preview),
             () => ThatTheReleaseNotesExist(ReleaseType.Preview),
@@ -116,6 +117,7 @@ public partial class CICD // StatusChecks
             () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Production),
             () => ThatAllMilestoneIssuesHaveLabels(),
             () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Production, true),
+            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Production, true),
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleaseToDoIssue(ReleaseType.Production),
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Production),
             () => ThatTheReleaseNotesExist(ReleaseType.Production),
@@ -338,7 +340,7 @@ public partial class CICD // StatusChecks
 
     Target DebugTask => _ => _
         .Requires(
-            () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Preview)
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Preview, true)
         )
         .Executes(async () =>
         {
