@@ -544,6 +544,16 @@ public static class ExtensionMethods
         return milestones[0];
     }
 
+    public static bool IsNotReleaseToDoIssue(this Issue issue)
+    {
+        const string prevLabelOrTitle = "🚀Preview Release";
+        const string prodLabelOrTitle = "🚀Production Release";
+
+        return issue.PullRequest is null &&
+               (issue.Title != prevLabelOrTitle && issue.Title != prodLabelOrTitle) &&
+               issue.Labels.Any(l => l.Name == prevLabelOrTitle || l.Name == prodLabelOrTitle) is false;
+    }
+
     public static string GetReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)
     {
         const string relativeDir = "Documentation/ReleaseNotes";

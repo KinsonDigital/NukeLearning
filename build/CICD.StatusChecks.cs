@@ -91,7 +91,7 @@ public partial class CICD // StatusChecks
             () => ThatTheReleaseMilestoneContainsIssues(),
             () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
             () => ThatAllMilestoneIssuesHaveLabels(),
-            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(true), // Skip release to do issues
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleaseToDoIssue(ReleaseType.Preview),
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Preview),
             () => ThatTheReleaseNotesExist(ReleaseType.Preview),
@@ -115,7 +115,7 @@ public partial class CICD // StatusChecks
             () => ThatTheReleaseMilestoneContainsIssues(),
             () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Production),
             () => ThatAllMilestoneIssuesHaveLabels(),
-            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(true), // Skip release to do issues
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleaseToDoIssue(ReleaseType.Production),
             () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Production),
             () => ThatTheReleaseNotesExist(ReleaseType.Production),

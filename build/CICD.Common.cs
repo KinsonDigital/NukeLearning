@@ -1244,7 +1244,7 @@ public partial class CICD // Common
         return false;
     }
 
-    bool ThatAllOfTheReleaseMilestoneIssuesAreClosed()
+    bool ThatAllOfTheReleaseMilestoneIssuesAreClosed(bool skipReleaseToDoIssues = false)
     {
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
@@ -1257,19 +1257,31 @@ public partial class CICD // Common
         }
 
         var projectVersion = project?.GetVersion() ?? string.Empty;
-        var milestoneClient = GitHubClient.Issue.Milestone;
 
-        var milestone = milestoneClient.GetByTitle(Owner, MainProjName, $"v{projectVersion}").Result;
+        var totalOpenIssues = -1;
 
-        if (milestone is null)
+        var milestone = GitHubClient.Issue.Milestone.GetByTitle(Owner, MainProjName, $"v{projectVersion}").Result;
+
+        if (skipReleaseToDoIssues)
         {
-            const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
-            var errorMsg = $"The milestone for version '{projectVersion}' does not exist.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
-            errors.Add(errorMsg);
-        }
+            var milestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, $"v{projectVersion}").Result;
 
-        var totalOpenIssues = milestone?.OpenIssues ?? 0;
+            var issuesToCheck = milestoneIssues.Where(i => i.IsNotReleaseToDoIssue()).ToArray();
+
+            totalOpenIssues = issuesToCheck.Count(i => i.State == ItemState.Open);
+        }
+        else
+        {
+            if (milestone is null)
+            {
+                const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
+                var errorMsg = $"The milestone for version '{projectVersion}' does not exist.";
+                errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
+                errors.Add(errorMsg);
+            }
+
+            totalOpenIssues = milestone?.OpenIssues ?? 0;
+        }
 
         if (totalOpenIssues > 0)
         {
