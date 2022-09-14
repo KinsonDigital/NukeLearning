@@ -544,6 +544,19 @@ public static class ExtensionMethods
         return milestones[0];
     }
 
+    public static async Task<string> GetHtmlUrl(
+        this IMilestonesClient client,
+        string owner,
+        string name,
+        string title)
+    {
+        var milestones = (from m in await client.GetAllForRepository(owner, name)
+            where m.Title == title
+            select m).ToArray();
+
+        return milestones.Length <= 0 ? string.Empty : milestones[0].HtmlUrl;
+    }
+
     public static bool IsReleaseToDoIssue(this Issue issue, ReleaseType releaseType)
     {
         var releaseLabelOrTitle = releaseType switch

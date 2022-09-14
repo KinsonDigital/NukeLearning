@@ -1249,33 +1249,20 @@ public partial class CICD // Common
 
         var totalOpenIssues = -1;
 
-        var milestone = GitHubClient.Issue.Milestone.GetByTitle(Owner, MainProjName, $"v{projectVersion}").Result;
+        var milestoneUrl = GitHubClient.Issue.Milestone.GetHtmlUrl(Owner, MainProjName, $"v{projectVersion}").Result;
 
-        if (skipReleaseToDoIssues)
-        {
-            var milestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, $"v{projectVersion}").Result;
+        var milestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, $"v{projectVersion}").Result;
 
-            var issuesToCheck = milestoneIssues.Where(i => i.IsReleaseToDoIssue(releaseType)).ToArray();
+        var issuesToCheck = milestoneIssues.Where(i => skipReleaseToDoIssues
+            ? !i.IsReleaseToDoIssue(releaseType)
+            : i.IsReleaseToDoIssue(releaseType)).ToArray();
 
-            totalOpenIssues = issuesToCheck.Count(i => i.State == ItemState.Open);
-        }
-        else
-        {
-            if (milestone is null)
-            {
-                const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
-                var errorMsg = $"The milestone for version '{projectVersion}' does not exist.";
-                errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
-                errors.Add(errorMsg);
-            }
-
-            totalOpenIssues = milestone?.OpenIssues ?? 0;
-        }
+        totalOpenIssues = issuesToCheck.Count(i => i.State == ItemState.Open);
 
         if (totalOpenIssues > 0)
         {
             var errorMsg = $"The milestone for version '{projectVersion}' contains opened issues.";
-            errorMsg += $"{Environment.NewLine}{ConsoleTab} To view the opened issues for the milestone, go here 👉🏼 {milestone?.HtmlUrl}";
+            errorMsg += $"{Environment.NewLine}{ConsoleTab} To view the opened issues for the milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);
         }
 
