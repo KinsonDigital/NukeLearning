@@ -544,14 +544,45 @@ public static class ExtensionMethods
         return milestones[0];
     }
 
-    public static bool IsNotReleaseToDoIssue(this Issue issue)
+    public static bool IsReleaseToDoIssue(this Issue issue, ReleaseType releaseType)
     {
-        const string prevLabelOrTitle = "🚀Preview Release";
-        const string prodLabelOrTitle = "🚀Production Release";
+        var releaseLabelOrTitle = releaseType switch
+        {
+            ReleaseType.Preview => "🚀Preview Release",
+            ReleaseType.Production => "🚀Production Release",
+            ReleaseType.HotFix => "🚀Hot Fix Release",
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null),
+        };
 
-        return issue.PullRequest is null &&
-               (issue.Title != prevLabelOrTitle && issue.Title != prodLabelOrTitle) &&
-               issue.Labels.Any(l => l.Name == prevLabelOrTitle || l.Name == prodLabelOrTitle) is false;
+        var isIssue = issue.PullRequest is null;
+        var validTitle = issue.Title == releaseLabelOrTitle;
+        var validLabelType = issue.Labels.Any(l => l.Name == releaseLabelOrTitle);
+
+        return isIssue && validTitle && validLabelType;
+    }
+
+    public static bool IsReleasePullRequest(this Issue issue, ReleaseType releaseType)
+    {
+        var releaseTitle = releaseType switch
+        {
+            ReleaseType.Preview => "Preview Release",
+            ReleaseType.Production => "Production Release",
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null),
+        };
+
+        var releaseLabel = releaseType switch
+        {
+            ReleaseType.Preview => "🚀Preview Release",
+            ReleaseType.Production => "🚀Production Release",
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null),
+        };
+
+        var hasValidTitle = issue.Title == releaseTitle;
+        var hasSingleLabel = issue.Labels.Count == 1;
+        var isPullRequest = issue.PullRequest is not null;
+        var validLabelType = issue.Labels.Count >= 1 && issue.Labels[0].Name == releaseLabel;
+
+        return hasValidTitle  && hasSingleLabel && isPullRequest && validLabelType;
     }
 
     public static string GetReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)

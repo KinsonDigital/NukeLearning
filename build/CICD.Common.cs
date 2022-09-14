@@ -1203,13 +1203,6 @@ public partial class CICD // Common
             errors.Add(errorMsg);
         }
 
-        var prTitle = releaseType switch
-        {
-            ReleaseType.Preview => "Preview Release",
-            ReleaseType.Production => "Production Release",
-            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
-        };
-
         var releaseLabel = releaseType switch
         {
             ReleaseType.Preview => "🚀Preview Release",
@@ -1217,11 +1210,7 @@ public partial class CICD // Common
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
         };
 
-        var totalReleasePullRequests =
-            issues.Count(i => i.Title == prTitle &&
-                                  i.Labels.Count == 1 &&
-                                  i.PullRequest is not null &&
-                                  i.Labels[0].Name == releaseLabel);
+        var totalReleasePullRequests = issues.Count(i => i.IsReleasePullRequest(releaseType));
 
         if (totalReleasePullRequests == 0 || totalReleasePullRequests > 1)
         {
@@ -1244,7 +1233,7 @@ public partial class CICD // Common
         return false;
     }
 
-    bool ThatAllOfTheReleaseMilestoneIssuesAreClosed(bool skipReleaseToDoIssues = false)
+    bool ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType releaseType, bool skipReleaseToDoIssues)
     {
         var project = Solution.GetProject(MainProjName);
         var errors = new List<string>();
@@ -1266,7 +1255,7 @@ public partial class CICD // Common
         {
             var milestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, $"v{projectVersion}").Result;
 
-            var issuesToCheck = milestoneIssues.Where(i => i.IsNotReleaseToDoIssue()).ToArray();
+            var issuesToCheck = milestoneIssues.Where(i => i.IsReleaseToDoIssue(releaseType)).ToArray();
 
             totalOpenIssues = issuesToCheck.Count(i => i.State == ItemState.Open);
         }
