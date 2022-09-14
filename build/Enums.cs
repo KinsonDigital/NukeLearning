@@ -3,7 +3,8 @@ namespace NukeLearningCICD;
 public enum ReleaseType
 {
     Production,
-    Preview
+    Preview,
+    HotFix,
 }
 
 public enum BranchType
@@ -14,7 +15,8 @@ public enum BranchType
     PreviewFeature,
     Release,
     Preview,
-    HotFix
+    HotFix,
+    Other,
 }
 
 public enum RunType

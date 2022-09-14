@@ -1,9 +1,12 @@
-name: ✅Milestone State Status Check
+name: ✅Hot Fix Status Check
 
 
 on:
   workflow_dispatch:
-#  pull_request:
+  pull_request:
+    branches:
+      - master
+
 
 # TODO: Needs to run on windows and ubuntu
 
@@ -13,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Milestone State Status Check
-        run: ./build.cmd MilestoneStateStatusCheck
+      - name: Run Build Status Check
+        run: ./build.cmd HotFixPRStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

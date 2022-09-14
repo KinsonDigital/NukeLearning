@@ -1,15 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.Tools.GitHub;
-using Octokit;
 using Serilog;
-using Serilog.Events;
-using static Nuke.Common.Tools.Git.GitTasks;
 
 namespace NukeLearningCICD;
 
@@ -48,31 +41,89 @@ public partial class CICD // StatusChecks
 
     Target FeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatTheWorkflowRunIsForAPullRequest(nameof(FeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatThisIsPullRequestRun(nameof(FeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatThePRSourceBranchIsValid(BranchType.Feature),
+            () => ThatFeaturePRIssueNumberExists(),
+            () => ThatFeaturePRIssueHasLabel(BranchType.Feature),
             () => ThatThePRTargetBranchIsValid(BranchType.Develop),
             () => ThatThePRHasBeenAssigned(),
             () => ThatPRHasLabels()
         );
 
 
+    // TODO: Create HotFix PR status check
+
     Target PreviewFeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatTheWorkflowRunIsForAPullRequest(nameof(PreviewFeaturePRStatusCheck), RunType.StatusCheck),
+            () => ThatThisIsPullRequestRun(nameof(PreviewFeaturePRStatusCheck), RunType.StatusCheck),
             () => ThatThePRSourceBranchIsValid(BranchType.PreviewFeature),
+            () => ThatPreviewFeaturePRIssueNumberExists(),
+            () => ThatFeaturePRIssueHasLabel(BranchType.PreviewFeature),
             () => ThatThePRTargetBranchIsValid(BranchType.Preview),
             () => ThatThePRHasBeenAssigned(),
             () => ThatPRHasLabels()
         );
 
+
+    Target HotFixPRStatusCheck => _ => _
+        .Requires(
+            () => ThatThisIsPullRequestRun(nameof(HotFixPRStatusCheck), RunType.StatusCheck),
+            () => ThatThePRSourceBranchIsValid(BranchType.HotFix),
+            () => ThatPreviewFeaturePRIssueNumberExists(),
+            () => ThatFeaturePRIssueHasLabel(BranchType.HotFix),
+            () => ThatThePRTargetBranchIsValid(BranchType.Master),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatPRHasLabels()
+        );
+
+
     Target PrevReleasePRStatusCheck => _ => _
         .Requires(
-            () => ThatTheWorkflowRunIsForAPullRequest(nameof(PrevReleasePRStatusCheck), RunType.StatusCheck),
+            () => ThatThisIsPullRequestRun(nameof(PrevReleasePRStatusCheck), RunType.StatusCheck),
             () => ThatThePRSourceBranchIsValid(BranchType.Preview),
             () => ThatThePRTargetBranchIsValid(BranchType.Release),
             () => ThatThePRHasBeenAssigned(),
-            () => ThatThePRHasTheLabel("🚀Preview Release")
+            () => ThatThePRHasTheLabel("🚀Preview Release"),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Preview),
+            () => ThatThePreviewPRBranchVersionsMatch(ReleaseType.Preview),
+            () => ThatThePRSourceBranchVersionSectionMatchesProjectVersion(ReleaseType.Preview),
+            () => ThatTheReleaseMilestoneExists(),
+            () => ThatTheReleaseMilestoneContainsIssues(),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
+            () => ThatAllMilestoneIssuesHaveLabels(),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(),
+            () => ThatTheReleaseMilestoneOnlyContainsSingleReleaseToDoIssue(ReleaseType.Preview),
+            () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Preview),
+            () => ThatTheReleaseNotesExist(ReleaseType.Preview),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Preview),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Preview),
+            () => NugetPackageDoesNotExist()
         );
+
+
+    Target ProdReleasePRStatusCheck => _ => _
+        .Requires(
+            () => ThatThisIsPullRequestRun(nameof(PrevReleasePRStatusCheck), RunType.StatusCheck),
+            () => ThatThePRSourceBranchIsValid(BranchType.Release),
+            () => ThatThePRTargetBranchIsValid(BranchType.Master),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatThePRHasTheLabel("🚀Production Release"),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Production),
+            () => ThatThePreviewPRBranchVersionsMatch(ReleaseType.Production),
+            () => ThatThePRSourceBranchVersionSectionMatchesProjectVersion(ReleaseType.Production),
+            () => ThatTheReleaseMilestoneExists(),
+            () => ThatTheReleaseMilestoneContainsIssues(),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Production),
+            () => ThatAllMilestoneIssuesHaveLabels(),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(),
+            () => ThatTheReleaseMilestoneOnlyContainsSingleReleaseToDoIssue(ReleaseType.Production),
+            () => ThatTheReleaseMilestoneOnlyContainsSingleReleasePR(ReleaseType.Production),
+            () => ThatTheReleaseNotesExist(ReleaseType.Production),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Production),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Production),
+            () => NugetPackageDoesNotExist()
+        );
+
 
     Target ValidVersionStatusCheck => _ => _
         .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
@@ -286,15 +337,11 @@ public partial class CICD // StatusChecks
 
 
     Target DebugTask => _ => _
+        .Requires(
+            () => ThatThePreviewPRBranchVersionsMatch(ReleaseType.Production)
+        )
         .Executes(async () =>
         {
-            var client = GitHubClient.Issue;
-            var labelClient = client.Labels;
-            var hasPreviewReleaseLabel = await labelClient.LabelExists(Owner, MainProjName, 11, "🚀Preview Release");
-
-            var prClient = GitHubClient.PullRequest;
-
-            var pr = await prClient.Get(Owner, MainProjName, 11);
         });
 
 

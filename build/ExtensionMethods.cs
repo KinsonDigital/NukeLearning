@@ -1,16 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.Principal;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.ProjectModel;
+using Nuke.Common.Utilities;
 using Octokit;
 using Serilog;
 using static Nuke.Common.Tools.Git.GitTasks;
@@ -21,10 +19,50 @@ namespace NukeLearningCICD;
 public static class ExtensionMethods
 {
     private static readonly char[] Digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', };
+    private static readonly char[] UpperCaseLetters =
+    {
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    };
     private const char MatchNumbers = '#';
     private const char MatchAnything = '*';
 
     public static bool IsNotNullOrEmpty(this string value) => !string.IsNullOrEmpty(value);
+
+    public static string ToSpaceDelimitedSections(this string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        var result = string.Empty;
+
+        for (var i = 0; i < value.Length; i++)
+        {
+            var character = value[i];
+
+            result += UpperCaseLetters.Contains(character) && i != 0
+                ? $" {character.ToString()}"
+                : character.ToString();
+        }
+
+        return result;
+    }
+
+    public static (bool hasVersion, string version) ExtractBranchVersion(this string branch)
+    {
+        if (string.IsNullOrEmpty(branch))
+        {
+            return (false, string.Empty);
+        }
+
+        var containsVersions = branch.IsPreviewBranch() || branch.IsReleaseBranch();
+
+        return containsVersions
+            ? (true, branch.Split('/')[1])
+            : (false, string.Empty);
+    }
 
     public static bool ContainsNumbers(this string value) => Digits.Any(value.Contains);
 
@@ -147,6 +185,46 @@ public static class ExtensionMethods
     }
 
     public static bool IsHotFixBranch(this string branch) => IsCorrectBranch(branch, "hotfix/#-*");
+
+    public static BranchType GetBranchType(this string branch)
+    {
+        if (branch.IsDevelopBranch())
+        {
+            return BranchType.Develop;
+        }
+
+        if (branch.IsMasterBranch())
+        {
+            return BranchType.Master;
+        }
+
+        if (branch.IsFeatureBranch())
+        {
+            return BranchType.Feature;
+        }
+
+        if (branch.IsPreviewFeatureBranch())
+        {
+            return BranchType.PreviewFeature;
+        }
+
+        if (branch.IsPreviewBranch())
+        {
+            return BranchType.Preview;
+        }
+
+        if (branch.IsReleaseBranch())
+        {
+            return BranchType.Release;
+        }
+
+        if (branch.IsHotFixBranch())
+        {
+            return BranchType.HotFix;
+        }
+
+        return BranchType.Other;
+    }
 
     public static bool HasCorrectVersionSyntax(this NukeProject project, string versionPattern)
     {
@@ -302,6 +380,40 @@ public static class ExtensionMethods
         return true;
     }
 
+    public static async Task<bool> HasLabels(
+        this IIssuesClient client,
+        string owner,
+        string name,
+        int issueNumber)
+    {
+        try
+        {
+            var issue = await client.Get(owner, name, issueNumber);
+
+            return issue is not null && issue.PullRequest is null && issue.Labels.Count >= 1;
+        }
+        catch (NotFoundException e)
+        {
+            return false;
+        }
+    }
+
+    public static async Task<Issue[]> IssuesForMilestone(
+        this IIssuesClient client,
+        string owner,
+        string name,
+        string mileStoneName)
+    {
+        var issueRequest = new RepositoryIssueRequest();
+        issueRequest.Filter = IssueFilter.All;
+        issueRequest.State = ItemStateFilter.All;
+
+        var issues = await client.GetAllForRepository(owner, name, issueRequest);
+        var issuesForMilestone = issues.Where(i => i.Milestone is not null && i.Milestone.Title == mileStoneName).ToArray();
+
+        return issuesForMilestone;
+    }
+
     public static async Task<bool> HasReviewers(
         this IPullRequestsClient client,
         string owner,
@@ -443,7 +555,11 @@ public static class ExtensionMethods
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
         };
 
-        var fileName = $"Release-Notes-{version}.md";
+        version = version.StartsWith("v")
+            ? version.TrimStart("v")
+            : version;
+
+        var fileName = $"Release-Notes-v{version}.md";
 
         return $"{notesDirPath}/{fileName}";
     }
@@ -464,6 +580,24 @@ public static class ExtensionMethods
         }
 
         return File.ReadAllText(fullFilePath);
+    }
+
+    public static void PrintErrors(this IEnumerable<string>? errors, string failMsg)
+    {
+        var errorList = errors is null
+            ? Array.Empty<string>()
+            : errors.ToArray();
+        if (errorList.Length <= 0)
+        {
+            return;
+        }
+
+        foreach (var error in errorList)
+        {
+            Log.Error($"{error}{Environment.NewLine}");
+        }
+
+        Assert.Fail(failMsg);
     }
 
     /// <summary>

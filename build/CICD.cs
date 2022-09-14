@@ -1,13 +1,10 @@
-using System;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
-using Nuke.Common.Tools.GitHub;
 using Octokit;
 using Octokit.Internal;
-using Serilog;
 using NukeParameter = Nuke.Common.ParameterAttribute;
 
 namespace NukeLearningCICD;
@@ -26,7 +23,6 @@ public partial class CICD : NukeBuild
     const string TestProjFileName = $"{TestProjName}.{ProjFileExt}";
     const string NugetOrgSource = "https://api.nuget.org/v3/index.json";
     const string ConsoleTab = "\t       ";
-    static string FeatureBranchSyntax = string.Empty;
 
     public static int Main()
     {
@@ -69,7 +65,7 @@ public partial class CICD : NukeBuild
             return GitHubActions.Instance.Token;
         }
 
-        return "local-fake-token";
+        return "empty";
     }
 
     static GitHubClient GetGitHubClient()

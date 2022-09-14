@@ -7,6 +7,7 @@ on:
     branches:
       - develop
       - preview/v*.*.*-preview.*
+      - release/v*.*.*
 
 # TODO: Needs to run on windows and ubuntu
 
@@ -18,5 +19,3 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Unit Test Status Check
         run: ./build.cmd UnitTestStatusCheck
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
