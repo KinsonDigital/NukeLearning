@@ -796,10 +796,6 @@ public partial class CICD // Common
         var errors = new List<string>();
         var releaseTypeStr = releaseType.ToString().ToLower();
 
-        // TODO: DEBUG ONLY.  REMOVE AFTER
-        sourceBranch = "release/v4.5.6";
-        targetBranch = "develop";
-
         Log.Information($"Checking that the version section for the {releaseType} release PR source and target branches match.");
 
         if (string.IsNullOrEmpty(sourceBranch) || string.IsNullOrEmpty(targetBranch))

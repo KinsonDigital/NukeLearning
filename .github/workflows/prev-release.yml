@@ -3,9 +3,6 @@ name: 🚀Preview Release
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - release/v*.*.*
 
 
 jobs:
