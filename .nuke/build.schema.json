@@ -85,9 +85,14 @@
               "CreateGitHubRelease",
               "CreateNugetPackage",
               "DebugTask",
+              "FeaturePRStatusCheck",
+              "HotFixPRStatusCheck",
               "MilestoneExistsStatusCheck",
               "MilestoneStateStatusCheck",
               "NoGitHubReleaseStatusCheck",
+              "PreviewFeaturePRStatusCheck",
+              "PrevReleasePRStatusCheck",
+              "ProdReleasePRStatusCheck",
               "PublishNugetPackage",
               "ReleaseNotesExistStatusCheck",
               "RestoreSolution",
@@ -97,9 +102,7 @@
               "SendTweetAnnouncement",
               "TagDoesNotExistStatusCheck",
               "UnitTestStatusCheck",
-              "ValidFeaturePRStatusCheck",
               "ValidPreviewBranchVersionStatusCheck",
-              "ValidPreviewFeaturePRStatusCheck",
               "ValidVersionStatusCheck"
             ]
           }
@@ -121,9 +124,14 @@
               "CreateGitHubRelease",
               "CreateNugetPackage",
               "DebugTask",
+              "FeaturePRStatusCheck",
+              "HotFixPRStatusCheck",
               "MilestoneExistsStatusCheck",
               "MilestoneStateStatusCheck",
               "NoGitHubReleaseStatusCheck",
+              "PreviewFeaturePRStatusCheck",
+              "PrevReleasePRStatusCheck",
+              "ProdReleasePRStatusCheck",
               "PublishNugetPackage",
               "ReleaseNotesExistStatusCheck",
               "RestoreSolution",
@@ -133,9 +141,7 @@
               "SendTweetAnnouncement",
               "TagDoesNotExistStatusCheck",
               "UnitTestStatusCheck",
-              "ValidFeaturePRStatusCheck",
               "ValidPreviewBranchVersionStatusCheck",
-              "ValidPreviewFeaturePRStatusCheck",
               "ValidVersionStatusCheck"
             ]
           }

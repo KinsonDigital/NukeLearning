@@ -1,11 +1,12 @@
-name: ✅Milestone State Status Check
+name: ✅Preview Release PR Status Check
 
 
 on:
   workflow_dispatch:
-#  pull_request:
+  pull_request:
+    branches:
+      - release/v*.*.*
 
-# TODO: Needs to run on windows and ubuntu
 
 jobs:
   build_project:
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Milestone State Status Check
-        run: ./build.cmd MilestoneStateStatusCheck
+      - name: Run Preview Release PR Status Check
+        run: ./build.cmd PrevReleasePRStatusCheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

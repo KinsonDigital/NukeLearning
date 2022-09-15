@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.Principal;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.ProjectModel;
+using Nuke.Common.Utilities;
+using Nuke.Common.Utilities.Collections;
 using Octokit;
 using Serilog;
 using static Nuke.Common.Tools.Git.GitTasks;
@@ -21,10 +20,50 @@ namespace NukeLearningCICD;
 public static class ExtensionMethods
 {
     private static readonly char[] Digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', };
+    private static readonly char[] UpperCaseLetters =
+    {
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    };
     private const char MatchNumbers = '#';
     private const char MatchAnything = '*';
 
     public static bool IsNotNullOrEmpty(this string value) => !string.IsNullOrEmpty(value);
+
+    public static string ToSpaceDelimitedSections(this string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        var result = string.Empty;
+
+        for (var i = 0; i < value.Length; i++)
+        {
+            var character = value[i];
+
+            result += UpperCaseLetters.Contains(character) && i != 0
+                ? $" {character.ToString()}"
+                : character.ToString();
+        }
+
+        return result;
+    }
+
+    public static (bool hasVersion, string version) ExtractBranchVersion(this string branch)
+    {
+        if (string.IsNullOrEmpty(branch))
+        {
+            return (false, string.Empty);
+        }
+
+        var containsVersions = branch.IsPreviewBranch() || branch.IsReleaseBranch();
+
+        return containsVersions
+            ? (true, branch.Split('/')[1])
+            : (false, string.Empty);
+    }
 
     public static bool ContainsNumbers(this string value) => Digits.Any(value.Contains);
 
@@ -148,6 +187,46 @@ public static class ExtensionMethods
 
     public static bool IsHotFixBranch(this string branch) => IsCorrectBranch(branch, "hotfix/#-*");
 
+    public static BranchType GetBranchType(this string branch)
+    {
+        if (branch.IsDevelopBranch())
+        {
+            return BranchType.Develop;
+        }
+
+        if (branch.IsMasterBranch())
+        {
+            return BranchType.Master;
+        }
+
+        if (branch.IsFeatureBranch())
+        {
+            return BranchType.Feature;
+        }
+
+        if (branch.IsPreviewFeatureBranch())
+        {
+            return BranchType.PreviewFeature;
+        }
+
+        if (branch.IsPreviewBranch())
+        {
+            return BranchType.Preview;
+        }
+
+        if (branch.IsReleaseBranch())
+        {
+            return BranchType.Release;
+        }
+
+        if (branch.IsHotFixBranch())
+        {
+            return BranchType.HotFix;
+        }
+
+        return BranchType.Other;
+    }
+
     public static bool HasCorrectVersionSyntax(this NukeProject project, string versionPattern)
     {
         var currentVersion = project.GetVersion();
@@ -232,18 +311,42 @@ public static class ExtensionMethods
     }
 
     public static async Task<bool> TagExists(
-        this IRepositoriesClient repoClient,
+        this IRepositoriesClient client,
         string repoOwner,
         string repoName,
         string tag)
     {
-        var tags = await repoClient.GetAllTags(repoOwner, repoName);
+        var tags = await client.GetAllTags(repoOwner, repoName);
 
         var foundTag = (from t in tags
             where t.Name == tag
             select t).FirstOrDefault();
 
         return foundTag is not null;
+    }
+
+    public static async Task<bool> LabelExists(
+        this IIssuesLabelsClient client,
+        string repoOwner,
+        string repoName,
+        int issueNumber,
+        string labelName)
+    {
+        var issueLabels = await client.GetAllForIssue(repoOwner, repoName, issueNumber);
+
+        return issueLabels.Any(l => l.Name == labelName);
+    }
+
+    public static async Task<bool> LabelExists(
+        this IPullRequestsClient client,
+        string repoOwner,
+        string repoName,
+        int prNumber,
+        string labelName)
+    {
+        var pr = await client.Get(repoOwner, repoName, prNumber);
+
+        return pr.Labels.Any(l => l.Name == labelName);
     }
 
     public static async Task<bool> TagDoesNotExist(
@@ -259,14 +362,14 @@ public static class ExtensionMethods
         => gitHubActions.IsPullRequest is false && gitHubActions.EventName == "workflow_dispatch";
 
     public static async Task<bool> IssueExists(
-        this IIssuesClient issueClient,
+        this IIssuesClient client,
         string owner,
         string name,
         int issueNumber)
     {
         try
         {
-            var result = await issueClient.Get(owner, name, issueNumber);
+            var result = await client.Get(owner, name, issueNumber);
 
             return result.PullRequest is null;
         }
@@ -278,15 +381,71 @@ public static class ExtensionMethods
         return true;
     }
 
+    public static async Task<bool> HasLabels(
+        this IIssuesClient client,
+        string owner,
+        string name,
+        int issueNumber)
+    {
+        try
+        {
+            var issue = await client.Get(owner, name, issueNumber);
+
+            return issue is not null && issue.PullRequest is null && issue.Labels.Count >= 1;
+        }
+        catch (NotFoundException e)
+        {
+            return false;
+        }
+    }
+
+    public static async Task<Issue[]> IssuesForMilestone(
+        this IIssuesClient client,
+        string owner,
+        string name,
+        string mileStoneName)
+    {
+        var issueRequest = new RepositoryIssueRequest();
+        issueRequest.Filter = IssueFilter.All;
+        issueRequest.State = ItemStateFilter.All;
+
+        var issues = (await client.GetAllForRepository(owner, name, issueRequest))
+            .Where(i =>
+                i.PullRequest is null &&
+                i.Milestone is not null &&
+                i.Milestone.Title == mileStoneName).ToArray();
+
+        return issues;
+    }
+
+    public static async Task<Issue[]> PullRequestsForMilestone(
+        this IIssuesClient client,
+        string owner,
+        string name,
+        string mileStoneName)
+    {
+        var issueRequest = new RepositoryIssueRequest();
+        issueRequest.Filter = IssueFilter.All;
+        issueRequest.State = ItemStateFilter.All;
+
+        var pullRequests = (await client.GetAllForRepository(owner, name, issueRequest))
+            .Where(i =>
+                i.PullRequest is not null &&
+                i.Milestone is not null &&
+                i.Milestone.Title == mileStoneName).ToArray();
+
+        return pullRequests;
+    }
+
     public static async Task<bool> HasReviewers(
-        this IPullRequestsClient prClient,
+        this IPullRequestsClient client,
         string owner,
         string name,
         int prNumber)
     {
         try
         {
-            var pr = await prClient.Get(owner, name, prNumber);
+            var pr = await client.Get(owner, name, prNumber);
 
             return pr is not null && pr.RequestedReviewers.Count >= 1;
         }
@@ -297,16 +456,34 @@ public static class ExtensionMethods
     }
 
     public static async Task<bool> HasAssignees(
-        this IPullRequestsClient prClient,
+        this IPullRequestsClient client,
         string owner,
         string name,
         int prNumber)
     {
         try
         {
-            var pr = await prClient.Get(owner, name, prNumber);
+            var pr = await client.Get(owner, name, prNumber);
 
             return pr is not null && pr.Assignees.Count >= 1;
+        }
+        catch (NotFoundException e)
+        {
+            return false;
+        }
+    }
+
+    public static async Task<bool> HasLabels(
+        this IPullRequestsClient client,
+        string owner,
+        string name,
+        int prNumber)
+    {
+        try
+        {
+            var pr = await client.Get(owner, name, prNumber);
+
+            return pr is not null && pr.Labels.Count >= 1;
         }
         catch (NotFoundException e)
         {
@@ -390,6 +567,103 @@ public static class ExtensionMethods
         return milestones[0];
     }
 
+    public static async Task<string> GetHtmlUrl(
+        this IMilestonesClient client,
+        string owner,
+        string name,
+        string title)
+    {
+        var milestones = (from m in await client.GetAllForRepository(owner, name)
+            where m.Title == title
+            select m).ToArray();
+
+        return milestones.Length <= 0 ? string.Empty : milestones[0].HtmlUrl;
+    }
+
+    public static bool IsReleaseToDoIssue(this Issue issue, ReleaseType releaseType)
+    {
+        var releaseLabelOrTitle = releaseType switch
+        {
+            ReleaseType.Preview => "🚀Preview Release",
+            ReleaseType.Production => "🚀Production Release",
+            ReleaseType.HotFix => "🚀Hot Fix Release",
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null),
+        };
+
+        var isIssue = issue.PullRequest is null;
+        var validTitle = issue.Title == releaseLabelOrTitle;
+        var validLabelType = issue.Labels.Any(l => l.Name == releaseLabelOrTitle);
+
+        return isIssue && validTitle && validLabelType;
+    }
+
+    public static bool IsReleasePullRequest(this Issue issue, ReleaseType releaseType)
+    {
+        var releaseLabelOrTitle = releaseType switch
+        {
+            ReleaseType.Preview => "🚀Preview Release",
+            ReleaseType.Production => "🚀Production Release",
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null),
+        };
+
+        var hasValidTitle = issue.Title == releaseLabelOrTitle;
+        var hasSingleLabel = issue.Labels.Count == 1;
+        var isPullRequest = issue.PullRequest is not null;
+        var validLabelType = issue.Labels.Count == 1 && issue.Labels[0].Name == releaseLabelOrTitle;
+
+        return hasValidTitle  && hasSingleLabel && isPullRequest && validLabelType;
+    }
+
+    public static void LogAsError(this Issue issue)
+    {
+        var indent = Environment.NewLine + "\t       ";
+        var errorMsg = $"PR Number: {issue.Number}";
+        errorMsg += $"{indent}PR Title: {issue.Title}";
+        errorMsg += $"{indent}{(issue.PullRequest is null ? "Issue" : "PR")} Url: {issue.HtmlUrl}";
+        errorMsg += $"{indent}Labels ({issue.Labels.Count}){(issue.Labels.Count <= 0 ? string.Empty : ":")}";
+        issue.Labels.ForEach(l => errorMsg += $"{indent}\t  {l.Name}");
+
+        Log.Error(errorMsg);
+    }
+
+    public static void LogAsError(this IReadOnlyList<Issue> issues)
+    {
+        var indent = Environment.NewLine + "\t       ";
+
+        var totalIssues = issues.ToArray().Length;
+        var errorMsg = totalIssues <= 1 ? "--Single Issue--" : "--List Of Issues--";
+
+        foreach (var issue in issues)
+        {
+            var prOrIssuePrefix = issue.PullRequest is null ? "Issue" : "PR";
+            errorMsg += $"{indent}{prOrIssuePrefix} Number: {issue.Number}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
+            errorMsg += $"{indent}Labels ({issue.Labels.Count}){(issue.Labels.Count <= 0 ? string.Empty : ":")}";
+            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  - `{l.Name}`");
+            Log.Error(errorMsg);
+        }
+    }
+
+    public static void LogAsInfo(this IReadOnlyList<Issue> issues)
+    {
+        var indent = Environment.NewLine + "\t       ";
+
+        var totalIssues = issues.ToArray().Length;
+        var errorMsg = totalIssues <= 1 ? "--Single Issue--" : "--List Of Issues--";
+
+        foreach (var issue in issues)
+        {
+            var prOrIssuePrefix = issue.PullRequest is null ? "Issue" : "PR";
+            errorMsg += $"{indent}{prOrIssuePrefix} Number: {issue.Number}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
+            errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
+            errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
+            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  - `{l.Name}`");
+            Log.Information(errorMsg);
+        }
+    }
+
     public static string GetReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)
     {
         const string relativeDir = "Documentation/ReleaseNotes";
@@ -401,7 +675,11 @@ public static class ExtensionMethods
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
         };
 
-        var fileName = $"Release-Notes-{version}.md";
+        version = version.StartsWith("v")
+            ? version.TrimStart("v")
+            : version;
+
+        var fileName = $"Release-Notes-v{version}.md";
 
         return $"{notesDirPath}/{fileName}";
     }
@@ -422,6 +700,27 @@ public static class ExtensionMethods
         }
 
         return File.ReadAllText(fullFilePath);
+    }
+
+    public static void PrintErrors(this IEnumerable<string>? errors, string? failMsg = null)
+    {
+        var errorList = errors is null
+            ? Array.Empty<string>()
+            : errors.ToArray();
+        if (errorList.Length <= 0)
+        {
+            return;
+        }
+
+        foreach (var error in errorList)
+        {
+            Log.Error($"{error}{Environment.NewLine}");
+        }
+
+        if (failMsg is not null)
+        {
+            Assert.Fail(failMsg);
+        }
     }
 
     /// <summary>

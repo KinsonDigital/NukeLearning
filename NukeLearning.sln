@@ -13,7 +13,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{4AC69180-3F42-4F67-B03A-877F739E0046}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\build-status-check.yml = .github\workflows\build-status-check.yml
-		.github\workflows\preview-release.yml = .github\workflows\preview-release.yml
 		.github\workflows\unit-test-status-check.yml = .github\workflows\unit-test-status-check.yml
 		.github\workflows\valid-version-status-check.yml = .github\workflows\valid-version-status-check.yml
 		.github\workflows\no-github-release-status-check.yml = .github\workflows\no-github-release-status-check.yml
