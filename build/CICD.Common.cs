@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -299,5 +300,33 @@ public partial class CICD // Common
         errors.PrintErrors();
 
         return false;
+    }
+
+    string GetBranchSyntax(BranchType branchType)
+        => branchType switch
+        {
+            BranchType.Master => "master",
+            BranchType.Develop => "develop",
+            BranchType.Feature => "feature/#-*",
+            BranchType.PreviewFeature => "preview/feature/#-*",
+            BranchType.Release => "release/v#.#.#",
+            BranchType.Preview => "preview/v#.#.#-preview.#",
+            BranchType.HotFix => "hotfix/#-*",
+            BranchType.Other => "*",
+            _ => throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null)
+        };
+
+    async Task<string> MergeBranch(string sourceBranch, string targetBranch)
+    {
+        var mergeClient = GitHubClient.Repository.Merging;
+
+        var newMerge = new NewMerge(targetBranch, sourceBranch)
+        {
+            CommitMessage = $"Merge the branch '{sourceBranch}' into the branch '{targetBranch}' for production release.",
+        };
+
+        var mergeResult = await mergeClient.Create(Owner, MainProjName, newMerge);
+
+        return mergeResult.HtmlUrl;
     }
 }

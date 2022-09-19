@@ -9,8 +9,8 @@ on:
 
 
 jobs:
-  build_project:
-    name: ubuntu-latest
+  prev_release_pr_status_check:
+    name: Preview Release PR Status Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

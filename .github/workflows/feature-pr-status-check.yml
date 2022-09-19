@@ -14,8 +14,8 @@ jobs:
     name: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Feature PR Status Check
-        run: ./build.cmd FeaturePRStatusCheck
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v2
+    - name: Run Feature PR Status Check
+      run: ./build.cmd FeaturePRStatusCheck
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

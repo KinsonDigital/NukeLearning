@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Nuke.Common;
 using Serilog;
@@ -127,7 +131,7 @@ public partial class CICD // StatusChecks
 
 
     Target DebugTask => _ => _
-        .Executes(() =>
+        .Executes(async () =>
         {
         });
 

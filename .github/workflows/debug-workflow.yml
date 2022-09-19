@@ -6,12 +6,12 @@ on:
 
 
 jobs:
-  ubuntu-latest:
+  debug_workflow:
     name: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Preview Release
-        run: ./build.cmd DebugTask --nuget-api-key "${{ secrets.TEST_API_KEY }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v2
+    - name: Run Preview Release
+      run: ./build.cmd DebugTask
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

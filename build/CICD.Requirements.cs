@@ -256,111 +256,34 @@ public partial class CICD // Requirements
     bool ThatThePRTargetBranchIsValid(BranchType branchType)
     {
         var targetBranch = GitHubActions?.BaseRef ?? string.Empty;
-        var errorMsg = string.Empty;
+        var validMsg = string.Empty;
         var isValidBranch = false;
 
         nameof(ThatThePRTargetBranchIsValid)
             .LogRequirementTitle($"Checking if pull request target branch '{targetBranch}' is valid.");
 
-        switch (branchType)
+        var branchTypeStr = branchType.ToString().ToSpaceDelimitedSections().ToLower();
+        validMsg += $"{Environment.NewLine}{ConsoleTab}✅The '{branchTypeStr}' branch '{targetBranch}' valid.";
+
+        var branchSyntax = GetBranchSyntax(branchType);
+        var errorMsg = $"The {branchTypeStr} branch '{{Value}}' is invalid.";
+        errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for the develop branch is '{branchSyntax}'.";
+
+        isValidBranch = branchType switch
         {
-            case BranchType.Develop:
-                isValidBranch = targetBranch.IsDevelopBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The development branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for the develop branch is 'develop'.";
-                }
-                break;
-            case BranchType.Master:
-                isValidBranch = targetBranch.IsDevelopBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The production branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for the production branch is 'master'.";
-                }
-                break;
-            case BranchType.Feature:
-                isValidBranch = targetBranch.IsFeatureBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The feature branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
-                }
-                break;
-            case BranchType.PreviewFeature:
-                isValidBranch = targetBranch.IsPreviewFeatureBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The preview feature branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
-                }
-                break;
-            case BranchType.Release:
-                isValidBranch = targetBranch.IsReleaseBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The release branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
-                }
-                break;
-            case BranchType.Preview:
-                isValidBranch = targetBranch.IsPreviewBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The preview branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
-                }
-                break;
-            case BranchType.HotFix:
-                isValidBranch = targetBranch.IsHotFixBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The hotfix branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
-                }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null);
-        }
+            BranchType.Develop => targetBranch.IsDevelopBranch(),
+            BranchType.Master => targetBranch.IsMasterBranch(),
+            BranchType.Feature => targetBranch.IsFeatureBranch(),
+            BranchType.PreviewFeature => targetBranch.IsPreviewFeatureBranch(),
+            BranchType.Release => targetBranch.IsReleaseBranch(),
+            BranchType.Preview => targetBranch.IsPreviewBranch(),
+            BranchType.HotFix => targetBranch.IsHotFixBranch(),
+            _ => throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null)
+        };
 
         if (isValidBranch)
         {
+            Log.Information(validMsg);
             return true;
         }
 
@@ -407,114 +330,33 @@ public partial class CICD // Requirements
     bool ThatThePRSourceBranchIsValid(BranchType branchType)
     {
         var sourceBranch = GitHubActions?.HeadRef ?? string.Empty;
-        var errorMsg = string.Empty;
+        var validMsg = string.Empty;
         var isValidBranch = false;
 
         nameof(ThatThePRSourceBranchIsValid)
             .LogRequirementTitle("ValidatingPull RequestSource Branch:");
 
-        switch (branchType)
+        validMsg += $"{Environment.NewLine}{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.";
+        var branchTypeStr = branchType.ToString().ToSpaceDelimitedSections().ToLower();
+        var branchSyntax = GetBranchSyntax(branchType);
+        var errorMsg = $"The {branchTypeStr} branch '{{Value}}' is invalid.";
+        errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for the develop branch is '{branchSyntax}'.";
+
+        isValidBranch = branchType switch
         {
-            case BranchType.Develop:
-            case BranchType.Master:
-                errorMsg = "Invalid source branch.  'master' and 'develop' branches are not aloud to be merged into another branch.";
-                Log.Error(errorMsg);
-                break;
-            case BranchType.Feature:
-                isValidBranch = sourceBranch.IsFeatureBranch();
-
-                if (isValidBranch)
-                {
-                    var validIssueNumResult = BranchIssueNumberValid(branchType).Result;
-
-                    if (validIssueNumResult.isValid)
-                    {
-                        Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                    }
-                    else
-                    {
-                        errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
-                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
-                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax requirements for feature branches is 'feature/#-*.";
-                        Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
-                    }
-                }
-                else
-                {
-                    errorMsg = "The feature branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
-                }
-                break;
-            case BranchType.PreviewFeature:
-                isValidBranch = sourceBranch.IsPreviewFeatureBranch();
-
-                if (isValidBranch)
-                {
-                    var validIssueNumResult = BranchIssueNumberValid(branchType).Result;
-
-                    if (validIssueNumResult.isValid)
-                    {
-                        Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                    }
-                    else
-                    {
-                        errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
-                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
-                        errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax requirements for feature branches is 'feature/#-*'";
-                        Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
-                    }
-                }
-                else
-                {
-                    errorMsg = "The preview feature branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
-                }
-                break;
-            case BranchType.Release:
-                isValidBranch = sourceBranch.IsReleaseBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                }
-                else
-                {
-                    errorMsg = "The release branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
-                }
-                break;
-            case BranchType.Preview:
-                isValidBranch = sourceBranch.IsPreviewBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                }
-                else
-                {
-                    errorMsg = "The preview branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
-                }
-                break;
-            case BranchType.HotFix:
-                isValidBranch = sourceBranch.IsHotFixBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                }
-                else
-                {
-                    errorMsg = "The hotfix branch '{Value}' is invalid.";
-                    errorMsg += $"{Environment.NewLine}{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
-                }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null);
-        }
+            BranchType.Develop => sourceBranch.IsDevelopBranch(),
+            BranchType.Master => sourceBranch.IsMasterBranch(),
+            BranchType.Feature => sourceBranch.IsFeatureBranch(),
+            BranchType.PreviewFeature => sourceBranch.IsPreviewFeatureBranch(),
+            BranchType.Release => sourceBranch.IsReleaseBranch(),
+            BranchType.Preview => sourceBranch.IsPreviewBranch(),
+            BranchType.HotFix => sourceBranch.IsHotFixBranch(),
+            _ => throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null)
+        };
 
         if (isValidBranch)
         {
+            Log.Information(validMsg);
             return true;
         }
 

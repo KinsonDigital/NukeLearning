@@ -1,3 +1,4 @@
+using System;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
@@ -80,7 +81,17 @@ public partial class CICD : NukeBuild
             return GitHubActions.Instance.Token;
         }
 
-        return "";
+        var localSecretService = new LoadSecretsService();
+
+        const string tokenName = "GitHubApiToken";
+        var token = localSecretService.LoadSecret(tokenName);
+
+        if (string.IsNullOrEmpty(token))
+        {
+            throw new Exception($"The GitHub API token with the name '{tokenName}' could not be loaded.");
+        }
+
+        return token;
     }
 
     static GitHubClient GetGitHubClient()

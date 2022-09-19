@@ -12,11 +12,12 @@ on:
 
 jobs:
   build_project:
+    if: contains(github.ref, 'refs/pull') && startsWith(github.head_ref, 'hotfix/')
     name: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Build Status Check
-        run: ./build.cmd HotFixPRStatusCheck
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v2
+    - name: Run Build Status Check
+      run: ./build.cmd HotFixPRStatusCheck
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
