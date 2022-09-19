@@ -11,14 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Cache .nuke/temp, ~/.nuget/packages
-        uses: actions/cache@v2
-        with:
-          path: |
-            .nuke/temp
-            ~/.nuget/packages
-          key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
       - name: Run Preview Release
-        run: ./build.cmd PreviewRelease
+        run: ./build.cmd RunPreviewRelease
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NugetOrgApiKey: ${{ secrets.NUGET_ORG_API_KEY }}
+          TwitterConsumerApiKey: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
+          TwitterConsumerApiSecret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
+          TwitterAccessToken: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TwitterAccessTokenSecret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}

@@ -57,6 +57,7 @@
 - [x] Check that a tag that matches the csproj version does not already exist
 - [x] Check that the release notes exist.  (Not prod release notes)
 - [x] Check that the release notes contain at least one issue number for each issue in the milestone
+- [x] Check that the release notes version in the title is correct
 - [x] Check that a GitHub release does not already exist
 - [x] Nuget package release does not exist yet
 - [ ] Real world testing complete
@@ -80,6 +81,7 @@
 - [x] Check that a tag that matches the csproj version does not already exist
 - [x] Check that the release notes exist.  (Not prev release notes)
 - [x] Check that the release notes contain at least one issue number for each issue in the milestone
+- [x] Check that the release notes version in the title is correct
 - [x] Check that a GitHub release does not already exist
 - [x] Nuget package release does not exist yet
 - [ ] Real world testing complete
@@ -88,45 +90,65 @@
 
 # Preview Release Workflow
 
-- [ ] Validate 'v#.#.#' section of the release branch matches version in csproj
-- [ ] Check that a tag that matches the csproj version does not already exist
-- [ ] Check that the release notes contain at least one issue number for each issue in the milestone
-- [ ] Check that a GitHub release does not already exist
-- [ ] Nuget package release does not exist yet
-
-
-
-- [ ] Builds execute
-- [ ] Unit tests execute
-- [ ] Check that it is not executed as a PR
-- [ ] Check that it is executed on a preview branch
-- [ ] Versions are valid in csproj
-- [ ] Check that a GitHub milestone has been created
-- [ ] Check that the milestone contains issues
-- [ ] Check that all of the milestone issues are closed
-- [ ] Check that the milestone has exactly one release todo issue item
-- [ ] Check that the milestone has exactly one release PR item
-- [ ] Check that all issues in a milestone have a label
-- [ ] Check that the release notes exist.  (Not prev release notes)
-- [ ] Check that the release notes contain at least one issue number for each issue in the milestone
-- [ ] Nuget package release does not exist yet
-- [ ] GitHub release does not exist yet
-- [ ] Milestone exists
-- [ ] Milestone state is validated
+## Checks
+- [x] Check that it is not executed as a PR
+- [x] Check that it is executed on a release branch
+- [x] Versions are valid in csproj
+- [x] Validate 'v#.#.#' section of the release branch matches version in csproj
+- [x] Check that a tag that matches the csproj version does not already exist
+- [x] Check that a GitHub milestone has been created
+- [x] Check that the milestone contains issues
+- [x] Check that all of the milestone issues are closed
+- [x] Check that all of the milestone pull requests are closed
+- [x] Check that the milestone has exactly one release todo issue item
+- [x] Check that the milestone has exactly one release PR item
+- [x] Check that all issues in a milestone have a label
+- [x] Check that all pull requests in a milestone have a label
+- [x] Check that the release notes exist.  (Not prev release notes)
+- [x] Check that the release notes contain at least one issue number for each issue in the milestone
+- [x] Check that the release notes version in the title is correct
+- [x] GitHub release does not exist yet
+- [x] Nuget package release does not exist yet
+- [x] Builds execute - (TRIGGERS AFTER REQUIRES ALL PASS)
+- [x] Unit tests execute - (TRIGGERS AFTER REQUIRES ALL PASS)
 - [ ] Real world testing complete
+
+## Deployment
+
+- [x] Perform GitHub release
+  - [x] Set correct title
+  - [x] Set release notes
+  - [x] Set correct tag
+  - [x] Prints that release was successful with URL
+- [x] Perform NuGet Release
+  - [x] Creates package using Release config
+  - [x] Prints that release was successful with URL
+- [x] Close milestone
+- [x] Send tweet announcement about release
 
 
 # Production Release Workflow
 
-- [ ] Everything builds
-- [ ] Unit tests pass
-- [ ] Requires() to NOT be a PR
-- [ ] Requires() on master branch
-- [ ] Versions in csproj is correct
-- [ ] Release notes exist
+- [ ] Check that it is not executed as a PR
+- [ ] Check that it is executed on a master branch
+- [ ] Versions are valid in csproj
+- [ ] Check that a tag that matches the csproj version does not already exist
+- [ ] Check that a GitHub milestone has been created
+- [ ] Check that the milestone contains issues
+- [ ] Check that all of the milestone issues are closed
+- [ ] Check that all of the milestone pull requests are closed
+- [ ] Check that the milestone has exactly one release todo issue item
+- [ ] Check that the milestone has exactly one release PR item
+- [ ] Check that all issues in a milestone have a label
+- [ ] Check that all pull requests in a milestone have a label
+- [ ] Check that the release notes exist.  (Not prev release notes)
 - [ ] Check that the release notes contain at least one issue number for each issue in the milestone
-- [ ] Nuget package release does not exist yet
 - [ ] GitHub release does not exist yet
-- [ ] Milestone exists
-- [ ] Milestone state is validated
+- [ ] Nuget package release does not exist yet
+- [ ] Builds execute - (TRIGGERS AFTER REQUIRES ALL PASS)
+- [ ] Unit tests execute - (TRIGGERS AFTER REQUIRES ALL PASS)
 - [ ] Real world testing complete
+
+## Deployment
+
+TODO: Copy list from preview list to here

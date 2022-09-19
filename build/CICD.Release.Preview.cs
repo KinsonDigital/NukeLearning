@@ -1,6 +1,5 @@
-using System.Threading.Tasks;
+using System;
 using Nuke.Common;
-using Nuke.Common.Tools.GitHub;
 using Serilog;
 
 namespace NukeLearningCICD;
@@ -8,15 +7,81 @@ namespace NukeLearningCICD;
 public partial class CICD // Release.Preview
 {
     Target RunPreviewRelease => _ => _
-        // .Requires(
-        //     () => ThatTheReleaseIsNotFromPullRequest(ReleaseType.Preview)
-        // )
-        .Before(BuildAllProjects, RunAllUnitTests)
-        .Triggers(BuildAllProjects, RunAllUnitTests)
+        .Requires(
+            () => ThatThisIsExecutedManually(BranchType.Release),
+            () => ThatTheCurrentBranchIsCorrect(BranchType.Release),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Preview),
+            () => ThatTheCurrentBranchVersionMatchesProjectVersion(BranchType.Release),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
+            () => ThatTheReleaseMilestoneExists(),
+            () => ThatTheReleaseMilestoneContainsIssues(),
+            () => ThatAllMilestoneIssuesHaveLabels(),
+            () => ThatAllMilestonePullRequestsHaveLabels(),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Preview, false),
+            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Preview, false),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.Issue),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.PullRequest),
+            () => ThatTheReleaseNotesExist(ReleaseType.Preview),
+            () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Preview),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Preview),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Preview),
+            () => NugetPackageDoesNotExist()
+        )
+        .After(BuildAllProjects, RunAllUnitTests)
+        .DependsOn(BuildAllProjects, RunAllUnitTests)
         .Executes(async () =>
         {
-            Log.Information($"🚀Starting preview release process for version 'stuff'");
+            var tweetTemplatePath = RootDirectory / ".github" / "ReleaseTweetTemplate.txt";
+            var version = Solution.GetProject(MainProjName)?.GetVersion() ?? string.Empty;
 
-            return await Task.FromResult(4);
+            version = version.StartsWith("v")
+                ? version
+                : $"v{version}";
+
+            if (string.IsNullOrEmpty(version))
+            {
+                Assert.Fail("Release failed.  Could not get version information.");
+            }
+
+            Log.Information($"🚀 Starting preview release process for version '{version}' 🚀");
+
+            try
+            {
+                // Create a GitHub release
+                Log.Information("✅Creating new GitHub release . . .");
+                await CreateNewGitHubRelease(ReleaseType.Preview, version);
+                Log.Information($"The GitHub preview release for version '{version}' was successful!!{Environment.NewLine}");
+
+                // Close the milestone
+                Log.Information("✅Closing GitHub milestone . . .");
+                var milestoneClient = GitHubClient.Issue.Milestone;
+                var milestoneResult = await milestoneClient.CloseMilestone(Owner, MainProjName, version);
+                var milestoneMsg = $"The GitHub milestone '{version}' as been closed.";
+                milestoneMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {milestoneResult.HtmlUrl}{Environment.NewLine}";
+                Log.Information(milestoneMsg);
+
+                // Create the nuget package to deploy
+                var fileName = $"{MainProjName}.{version.TrimStart('v')}.nupkg";
+                var nugetPath = $"{NugetOutputPath}/{fileName}"
+                    .Replace(RootDirectory, "~")
+                    .Replace(@"\", "/");
+                Log.Information("✅Creating a nuget package . . .");
+                CreateNugetPackage();
+                Log.Information($"Nuget package created at location '{nugetPath}'{Environment.NewLine}");
+
+                // Publish nuget package to nuget.org
+                Log.Information("✅Publishing nuget package to nuget.org . . .");
+                PublishNugetPackage();
+                Log.Information($"Nuget package published!!{Environment.NewLine}");
+
+                // Tweet about release
+                Log.Information("✅Announcing release on twitter . . .");
+                SendReleaseTweet(tweetTemplatePath, version);
+                Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+            }
+            catch (Exception e)
+            {
+                Assert.Fail(e.Message);
+            }
         });
 }

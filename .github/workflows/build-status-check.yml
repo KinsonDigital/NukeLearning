@@ -8,6 +8,7 @@ on:
       - develop
       - preview/v*.*.*-preview.*
       - release/v*.*.*
+      - master
 
 # TODO: Needs to run on windows and ubuntu
 

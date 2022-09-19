@@ -19,8 +19,15 @@ public enum BranchType
     Other,
 }
 
-public enum RunType
+public enum ItemType
 {
-    StatusCheck,
-    Release,
+    Issue,
+    PullRequest,
+}
+
+public enum ProjectTypes
+{
+    Regular,
+    Test,
+    All,
 }

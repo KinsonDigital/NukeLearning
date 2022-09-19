@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Nuke.Common;
@@ -28,6 +29,56 @@ public static class ExtensionMethods
     private const char MatchNumbers = '#';
     private const char MatchAnything = '*';
 
+    public static void LogRequirementTitle(this string requirementName, string value)
+    {
+        var indent = 15.CreateDuplicateCharacters(' ');
+        Log.Information($"✅ Requirement '{requirementName}' Executed ✅{Environment.NewLine}{indent}{value}{Environment.NewLine}");
+    }
+
+    public static string CreateDuplicateCharacters(this int value, char character)
+    {
+        var result = string.Empty;
+
+        if (value <= 0)
+        {
+            return character.ToString();
+        }
+
+        for (var i = 0; i < value; i++)
+        {
+            result += character.ToString();
+        }
+
+        return result;
+    }
+
+    public static string CapitalizeWords(this string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        var words = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var result = string.Empty;
+
+        foreach (var word in words)
+        {
+            if (word.Length == 1)
+            {
+                result += $" {word} ";
+            }
+            else
+            {
+                var stuff = word[1..];
+                var newWord = $"{word[0].ToString().ToUpper()}{word[1..]}";
+                result += $" {newWord} ";
+            }
+        }
+
+        return result.Trim().Replace("  ", " ");
+    }
+
     public static bool IsNotNullOrEmpty(this string value) => !string.IsNullOrEmpty(value);
 
     public static string ToSpaceDelimitedSections(this string value)
@@ -50,6 +101,10 @@ public static class ExtensionMethods
 
         return result;
     }
+
+    public static bool IsProductionVersion(this string value) => EqualTo(value, "v#.#.#") || EqualTo(value, "#.#.#");
+
+    public static bool IsPreviewVersion(this string value) => EqualTo(value, "v#.#.#-preview.#") || EqualTo(value, "#.#.#-preview.#");
 
     public static (bool hasVersion, string version) ExtractBranchVersion(this string branch)
     {
@@ -509,7 +564,7 @@ public static class ExtensionMethods
             var errorMsg = "Could not upload text file asset to release '{Value1}'.";
             errorMsg += $"{Environment.NewLine}The path to the asset file '{{Value2}} does not exist.";
             Log.Error(errorMsg, release.Name, filePath);
-            Assert.Fail($"The asset file '{filePath}' does not exist.");
+            throw new Exception($"The asset file '{filePath}' does not exist.");
         }
 
         await using var fileAsset = File.OpenRead(filePath);
@@ -534,7 +589,7 @@ public static class ExtensionMethods
             var errorMsg = "Uploading the text file asset '{Value1}' for release '{Value2}' failed.";
             errorMsg += $"{Environment.NewLine}{e.Message}";
             Log.Error(errorMsg);
-            Assert.Fail("There was an issue uploading a release asset.");
+            throw;
         }
     }
 
@@ -552,11 +607,11 @@ public static class ExtensionMethods
     public static async Task<Milestone?> GetByTitle(
         this IMilestonesClient client,
         string owner,
-        string name,
-        string title)
+        string repoName,
+        string name)
     {
-        var milestones = (from m in await client.GetAllForRepository(owner, name)
-            where m.Title == title
+        var milestones = (from m in await client.GetAllForRepository(owner, repoName)
+            where m.Title == name
             select m).ToArray();
 
         if (milestones.Length <= 0)
@@ -570,14 +625,40 @@ public static class ExtensionMethods
     public static async Task<string> GetHtmlUrl(
         this IMilestonesClient client,
         string owner,
-        string name,
-        string title)
+        string repoName,
+        string name)
     {
-        var milestones = (from m in await client.GetAllForRepository(owner, name)
-            where m.Title == title
+        var milestones = (from m in await client.GetAllForRepository(owner, repoName)
+            where m.Title == name
             select m).ToArray();
 
         return milestones.Length <= 0 ? string.Empty : milestones[0].HtmlUrl;
+    }
+
+    public static async Task<Milestone> CloseMilestone(this IMilestonesClient client, string owner, string repoName, string name)
+    {
+        var milestones = await client.GetAllForRepository(owner, repoName);
+
+        var foundMilestone = milestones.FirstOrDefault(m => m.Title == name);
+
+        if (foundMilestone is null)
+        {
+            throw new NotFoundException($"A milestone with the title/name '{name}' was not found", HttpStatusCode.NotFound);
+        }
+
+        var mileStoneUpdate = new MilestoneUpdate()
+        {
+            State = ItemState.Closed,
+        };
+
+        var updatedMilestone = await client.Update(owner, repoName, foundMilestone.Number, mileStoneUpdate);
+
+        if (updatedMilestone is null)
+        {
+            throw new Exception($"The milestone '{name}' could not be updated.");
+        }
+
+        return updatedMilestone;
     }
 
     public static bool IsReleaseToDoIssue(this Issue issue, ReleaseType releaseType)
@@ -614,55 +695,52 @@ public static class ExtensionMethods
         return hasValidTitle  && hasSingleLabel && isPullRequest && validLabelType;
     }
 
-    public static void LogAsError(this Issue issue)
+    public static string GetLogText(this Issue issue, int tabCount = 0)
     {
-        var indent = Environment.NewLine + "\t       ";
-        var errorMsg = $"PR Number: {issue.Number}";
-        errorMsg += $"{indent}PR Title: {issue.Title}";
-        errorMsg += $"{indent}{(issue.PullRequest is null ? "Issue" : "PR")} Url: {issue.HtmlUrl}";
-        errorMsg += $"{indent}Labels ({issue.Labels.Count}){(issue.Labels.Count <= 0 ? string.Empty : ":")}";
-        issue.Labels.ForEach(l => errorMsg += $"{indent}\t  {l.Name}");
-
-        Log.Error(errorMsg);
-    }
-
-    public static void LogAsError(this IReadOnlyList<Issue> issues)
-    {
-        var indent = Environment.NewLine + "\t       ";
-
-        var totalIssues = issues.ToArray().Length;
-        var errorMsg = totalIssues <= 1 ? "--Single Issue--" : "--List Of Issues--";
-
-        foreach (var issue in issues)
+        var tabs = string.Empty;
+        for (var i = 0; i < tabCount; i++)
         {
-            var prOrIssuePrefix = issue.PullRequest is null ? "Issue" : "PR";
-            errorMsg += $"{indent}{prOrIssuePrefix} Number: {issue.Number}";
-            errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
-            errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
-            errorMsg += $"{indent}Labels ({issue.Labels.Count}){(issue.Labels.Count <= 0 ? string.Empty : ":")}";
-            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  - `{l.Name}`");
-            Log.Error(errorMsg);
+            tabs += " ";
         }
+
+        var text = string.Empty;
+
+        var prOrIssuePrefix = issue.PullRequest is null ? "Issue" : "PR";
+        text += $"{Environment.NewLine}{tabs}{prOrIssuePrefix} Number: {issue.Number}";
+        text += $"{Environment.NewLine}{tabs}{prOrIssuePrefix} Title: {issue.Title}";
+        text += $"{Environment.NewLine}{tabs}{prOrIssuePrefix} State: {issue.State}";
+        text += $"{Environment.NewLine}{tabs}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
+        text += $"{Environment.NewLine}{tabs}Labels ({issue.Labels.Count}):";
+        issue.Labels.ForEach(l => text += $"{Environment.NewLine}{tabs}\t  - `{l.Name}`");
+
+        return text;
     }
 
-    public static void LogAsInfo(this IReadOnlyList<Issue> issues)
+    public static string GetLogText(this IReadOnlyList<Issue> issues, int totalIndentSpaces = 0)
     {
-        var indent = Environment.NewLine + "\t       ";
-
-        var totalIssues = issues.ToArray().Length;
-        var errorMsg = totalIssues <= 1 ? "--Single Issue--" : "--List Of Issues--";
-
-        foreach (var issue in issues)
+        var spaces = string.Empty;
+        for (var i = 0; i < totalIndentSpaces; i++)
         {
-            var prOrIssuePrefix = issue.PullRequest is null ? "Issue" : "PR";
-            errorMsg += $"{indent}{prOrIssuePrefix} Number: {issue.Number}";
-            errorMsg += $"{indent}{prOrIssuePrefix} Title: {issue.Title}";
-            errorMsg += $"{indent}{prOrIssuePrefix} Url: {issue.HtmlUrl}";
-            errorMsg += $"{indent}Labels ({issue.Labels.Count}):";
-            issue.Labels.ForEach(l => errorMsg += $"{indent}\t  - `{l.Name}`");
-            Log.Information(errorMsg);
+            spaces += " ";
         }
+
+        var errorMsg = "---------------------Issue(s)---------------------";
+
+        for (var i = 0; i < issues.Count; i++)
+        {
+            var issue = issues[i];
+            errorMsg += issue.GetLogText(totalIndentSpaces);
+            errorMsg += i >= issues.Count ? string.Empty : $"{Environment.NewLine}{spaces}----------------------------------------------";
+        }
+
+        return errorMsg;
     }
+
+    public static void LogAsError(this IReadOnlyList<Issue> issues, int totalIndentSpaces = 0)
+        => Log.Error(issues.GetLogText(totalIndentSpaces));
+
+    public static void LogAsInfo(this IReadOnlyList<Issue> issues, int totalIndentSpaces = 0)
+        => Log.Information(issues.GetLogText(totalIndentSpaces));
 
     public static string GetReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)
     {
@@ -700,6 +778,24 @@ public static class ExtensionMethods
         }
 
         return File.ReadAllText(fullFilePath);
+    }
+
+    public static string[] GetReleaseNotesAsLines(this Solution solution, ReleaseType releaseType, string version)
+    {
+        var fullFilePath = solution.GetReleaseNotesFilePath(releaseType, version);
+
+        if (File.Exists(fullFilePath) is false)
+        {
+            var errorMsg = "The {Value1} release notes for version '{Value2}' at file path '{Value3}'";
+            errorMsg += " could not be found.";
+            Log.Error(errorMsg,
+                releaseType.ToString().ToLower(),
+                version,
+                fullFilePath.Replace(solution.Directory, "~"));
+            Assert.Fail("The release notes file could not be found.");
+        }
+
+        return File.ReadAllLines(fullFilePath);
     }
 
     public static void PrintErrors(this IEnumerable<string>? errors, string? failMsg = null)
