@@ -458,17 +458,40 @@ public static class ExtensionMethods
         this IIssuesClient client,
         string owner,
         string name,
-        string mileStoneName)
+        string milestoneName)
     {
-        var issueRequest = new RepositoryIssueRequest();
-        issueRequest.Filter = IssueFilter.All;
-        issueRequest.State = ItemStateFilter.All;
+        var issueRequest = new RepositoryIssueRequest
+        {
+            Filter = IssueFilter.All,
+            State = ItemStateFilter.All,
+        };
 
         var issues = (await client.GetAllForRepository(owner, name, issueRequest))
             .Where(i =>
                 i.PullRequest is null &&
                 i.Milestone is not null &&
-                i.Milestone.Title == mileStoneName).ToArray();
+                i.Milestone.Title == milestoneName).ToArray();
+
+        return issues;
+    }
+
+    public static async Task<Issue[]> IssuesForMilestones(
+        this IIssuesClient client,
+        string owner,
+        string name,
+        string[] milestoneNames)
+    {
+        var issueRequest = new RepositoryIssueRequest
+        {
+            Filter = IssueFilter.All,
+            State = ItemStateFilter.All,
+        };
+
+        var issues = (await client.GetAllForRepository(owner, name, issueRequest))
+            .Where(i =>
+                i.PullRequest is null &&
+                i.Milestone is not null &&
+                milestoneNames.Contains(i.Milestone.Title)).ToArray();
 
         return issues;
     }
@@ -656,6 +679,37 @@ public static class ExtensionMethods
         if (updatedMilestone is null)
         {
             throw new Exception($"The milestone '{name}' could not be updated.");
+        }
+
+        return updatedMilestone;
+    }
+
+    public static async Task<Milestone> UpdateMilestoneDescription(
+        this IMilestonesClient client,
+        string owner,
+        string repoName,
+        string name,
+        string description)
+    {
+        var milestones = await client.GetAllForRepository(owner, repoName);
+
+        var foundMilestone = milestones.FirstOrDefault(m => m.Title == name);
+
+        if (foundMilestone is null)
+        {
+            throw new NotFoundException($"A milestone with the title/name '{name}' was not found", HttpStatusCode.NotFound);
+        }
+
+        var mileStoneUpdate = new MilestoneUpdate()
+        {
+            Description = description,
+        };
+
+        var updatedMilestone = await client.Update(owner, repoName, foundMilestone.Number, mileStoneUpdate);
+
+        if (updatedMilestone is null)
+        {
+            throw new Exception($"The milestone '{name}' description could not be updated.");
         }
 
         return updatedMilestone;

@@ -91,6 +91,7 @@
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
+              "RunProductionRelease",
               "SendTweetAnnouncement",
               "UnitTestStatusCheck"
             ]
@@ -119,6 +120,7 @@
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
+              "RunProductionRelease",
               "SendTweetAnnouncement",
               "UnitTestStatusCheck"
             ]

@@ -329,4 +329,41 @@ public partial class CICD // Common
 
         return mergeResult.HtmlUrl;
     }
+
+    async Task<bool> ProdVersionHasPreviewReleases(string version)
+    {
+        if (version.IsPreviewVersion())
+        {
+            throw new Exception($"The version '{version}' must not be a preview version.");
+        }
+
+        var issueClient = GitHubClient.Issue;
+        var milestoneClient = issueClient.Milestone;
+
+        var prodContainsPreviewReleases = (await milestoneClient.GetAllForRepository(Owner, MainProjName))
+            .Any(m => m.Title.IsPreviewVersion() is false && m.Title.StartsWith(version));
+
+        return prodContainsPreviewReleases;
+    }
+
+    async Task<bool> GetIssuesForProdVersionPreviewReleases(string version)
+    {
+        if (version.IsPreviewVersion())
+        {
+            throw new Exception($"The version '{version}' must not be a preview version.");
+        }
+
+        var issueClient = GitHubClient.Issue;
+        var milestoneClient = issueClient.Milestone;
+
+        var milestoneNames = (from m in await milestoneClient.GetAllForRepository(Owner, MainProjName)
+            where m.Title.IsPreviewVersion() is false && m.Title.StartsWith(version)
+            select m.Title).ToArray();
+
+        var issues = await issueClient.IssuesForMilestones(Owner, MainProjName, milestoneNames);
+
+
+
+        return false;
+    }
 }

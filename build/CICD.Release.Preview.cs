@@ -53,12 +53,20 @@ public partial class CICD // Release.Preview
                 Log.Information($"The GitHub preview release for version '{version}' was successful!!{Environment.NewLine}");
 
                 // Close the milestone
-                Log.Information("✅Closing GitHub milestone . . .");
+                Log.Information($"✅Closing GitHub milestone '{version}' . . .");
                 var milestoneClient = GitHubClient.Issue.Milestone;
                 var milestoneResult = await milestoneClient.CloseMilestone(Owner, MainProjName, version);
                 var milestoneMsg = $"The GitHub milestone '{version}' as been closed.";
                 milestoneMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {milestoneResult.HtmlUrl}{Environment.NewLine}";
                 Log.Information(milestoneMsg);
+
+                // Update the milestone description
+                Log.Information($"✅Updating description for milestone '{version}' . . .");
+                var description = $"Container for holding everything released in version {version}";
+                var updatedMilestone = await milestoneClient.UpdateMilestoneDescription(Owner, MainProjName, version, description);
+                var updateMsg = $"The GitHub Milestone '{version}' description has been updated.";
+                updateMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {updatedMilestone.HtmlUrl}{Environment.NewLine}";
+                Log.Information(updateMsg);
 
                 // Create the nuget package to deploy
                 var fileName = $"{MainProjName}.{version.TrimStart('v')}.nupkg";

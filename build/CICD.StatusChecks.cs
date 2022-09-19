@@ -133,6 +133,8 @@ public partial class CICD // StatusChecks
     Target DebugTask => _ => _
         .Executes(async () =>
         {
+            var test = await ProdVersionHasPreviewReleases("v1.2.3");
+
         });
 
 

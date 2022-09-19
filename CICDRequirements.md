@@ -151,4 +151,14 @@
 
 ## Deployment
 
-TODO: Copy list from preview list to here
+- [ ] Perform GitHub release
+  - [ ] Set correct title
+  - [ ] Set release notes
+  - [ ] Set correct tag
+  - [ ] Prints that release was successful with URL
+- [ ] Perform NuGet Release
+  - [ ] Creates package using Release config
+  - [ ] Prints that release was successful with URL
+- [ ] Merge master branch into develop branch
+- [ ] Close milestone
+- [ ] Send tweet announcement about release
