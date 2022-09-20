@@ -12,3 +12,7 @@ As with all software, there is always a chance for issues and bugs, especially f
 <h2 style="font-weight:bold" align="center">Preview Releases 🚀</h2>
 
 1. [Preview Release v1.2.3-preview.5](https://github.com/KinsonDigital/NukeLearning/milestone/2) - Issues from preview release.
+
+<h2 style="font-weight:bold" align="center">New Features ✨</h2>
+
+1. [#19](https://github.com/KinsonDigital/NukeLearning/issues/19) - Fake feature implementing fake stuff.
