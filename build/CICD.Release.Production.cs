@@ -8,25 +8,24 @@ public partial class CICD // Release.Production
 {
     Target RunProductionRelease => _ => _
         .Requires(
-            () => ThatThisIsExecutedManually(BranchType.Release),
-            () => ThatTheCurrentBranchIsCorrect(BranchType.Release),
-            () => ThatTheProjectVersionsAreValid(ReleaseType.Preview),
-            () => ThatTheCurrentBranchVersionMatchesProjectVersion(BranchType.Release),
-            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
+            () => ThatThisIsExecutedManually(BranchType.Master),
+            () => ThatTheCurrentBranchIsCorrect(BranchType.Master),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Production),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Production),
             () => ThatTheReleaseMilestoneExists(),
             () => ThatTheReleaseMilestoneContainsIssues(),
             () => ThatAllMilestoneIssuesHaveLabels(),
             () => ThatAllMilestonePullRequestsHaveLabels(),
-            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Preview, false),
-            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Preview, false),
-            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.Issue),
-            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.PullRequest),
-            () => ThatTheReleaseNotesExist(ReleaseType.Preview),
-            () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Preview),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Production, false),
+            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Production, false),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Production, ItemType.Issue),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Production, ItemType.PullRequest),
+            () => ThatTheReleaseNotesExist(ReleaseType.Production),
+            () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Production),
             () => ThatTheProdReleaseNotesContainsPreviewReleaseSection(),
             () => ThatTheProdReleaseNotesContainsPreviewReleaseItems(),
-            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Preview),
-            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Preview),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Production),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Production),
             () => NugetPackageDoesNotExist()
         )
         .After(BuildAllProjects, RunAllUnitTests)
