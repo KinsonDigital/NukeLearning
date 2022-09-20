@@ -1,12 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using GlobExpressions;
 using Nuke.Common;
-using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.ProjectModel;
 using Nuke.Common.Tools.DotNet;
 using Octokit;
 using Serilog;
@@ -26,47 +25,10 @@ public partial class CICD // Common
         });
 
 
-    Target CreateNugetPackage => _ => _
-        .DependsOn(RestoreSolution)
-        .After(RestoreSolution, BuildTestProject, RunUnitTests)
-        .Executes(() =>
-        {
-            DeleteNugetPackageIfExists();
-
-            DotNetPack(s => s
-                .SetConfiguration(Configuration)
-                .SetProject(MainProjPath)
-                .SetOutputDirectory(NugetOutputPath)
-                .EnableNoRestore());
-        });
-
-
-    Target PublishNugetPackage => _ => _
-        .DependsOn(RunAllUnitTests, CreateNugetPackage)
-        .Requires(() => NuGetApiKey)
-        .Requires(() => IsServerBuild) // Prevent accidental push attempt from local machine
-        .Executes(() =>
-        {
-            var packages = Glob.Files(NugetOutputPath, "*.nupkg").ToArray();
-
-            if (packages.Length <= 0)
-            {
-                Assert.Fail($"Could not find a nuget package in path '{NugetOutputPath}' to publish to nuget.org");
-            }
-
-            var fullPackagePath = $"{NugetOutputPath}/{packages[0]}";
-
-            DotNetNuGetPush(s => s
-                .SetTargetPath(fullPackagePath)
-                .SetSource(NugetOrgSource)
-                .SetApiKey(NuGetApiKey));
-        });
-
-
     Target SendTweetAnnouncement => _ => _
         .Requires(() => IsServerBuild)
-        .Requires(() => TwitterConsumerKey)
-        .Requires(() => TwitterConsumerSecret)
+        .Requires(() => TwitterConsumerApiKey)
+        .Requires(() => TwitterConsumerApiSecret)
         .Requires(() => TwitterAccessToken)
         .Requires(() => TwitterAccessTokenSecret)
         .Executes(async () =>
@@ -74,49 +36,76 @@ public partial class CICD // Common
             // Validate that the keys, tokens, and secrets are not null or empty
             await SendTweetAsync(
                 message: "Hello from NUKE",
-                TwitterConsumerKey,
-                TwitterConsumerSecret,
+                TwitterConsumerApiKey,
+                TwitterConsumerApiSecret,
                 TwitterAccessToken,
                 TwitterAccessTokenSecret);
         });
 
-
-    Target CreateGitHubRelease => _ => _
-        .DependsOn(RunAllUnitTests)
-        .After(RunAllUnitTests, RunUnitTests)
-        .Executes(() =>
-        {
-
-        });
-
-    bool IsPullRequest()
+    void CreateNugetPackage()
     {
-        return GitHubActions.Instance is not null && GitHubActions.Instance.IsPullRequest;
+        DeleteAllNugetPackages();
+
+        DotNetPack(s => s
+            .SetConfiguration(Configuration)
+            .SetProject(MainProjPath)
+            .SetOutputDirectory(NugetOutputPath)
+            .EnableNoRestore());
     }
 
-    bool ThatRunIsForPullRequest(string runName, RunType runType)
+    void PublishNugetPackage()
     {
-        var isPullRequest = IsPullRequest();
+        var packages = Glob.Files(NugetOutputPath, "*.nupkg").ToArray();
 
-        Log.Information("Checking if run is a pull request run.");
-        if (isPullRequest)
+        if (packages.Length <= 0)
         {
-            Log.Information($"{ConsoleTab}✅Valid run executed for '{runType}'");
+            Assert.Fail($"Could not find a nuget package in path '{NugetOutputPath}' to publish to nuget.org");
+        }
+
+        var fullPackagePath = $"{NugetOutputPath}/{packages[0]}";
+
+        if (File.Exists(fullPackagePath))
+        {
+            DotNetNuGetPush(s => s
+                .SetTargetPath(fullPackagePath)
+                .SetSource(NugetOrgSource)
+                .SetApiKey(NugetOrgApiKey));
         }
         else
         {
-            var errorMsg = runType switch
-            {
-                RunType.StatusCheck => $"Running '{runName}' can only be done with status checks.",
-                RunType.Release => $"Running '{runName}' can only be done with releases.",
-                _ => throw new ArgumentOutOfRangeException("")
-            };
+            throw new FileNotFoundException("The nuget package could not be found.", fullPackagePath);
+        }
+    }
 
-            Log.Error(errorMsg);
-            Assert.Fail($"{ConsoleTab}Not executed from a pull request.");
+    void SendReleaseTweet(string templateFilePath, string releaseVersion)
+    {
+        const string leftBracket = "{";
+        const string rightBracket = "}";
+        const string projLocation = $"{leftBracket}PROJECT_NAME{rightBracket}";
+        const string repoOwner = $"{leftBracket}REPO_OWNER{rightBracket}";
+        const string version = $"{leftBracket}VERSION{rightBracket}";
+
+        if (File.Exists(templateFilePath) is false)
+        {
+            return;
         }
 
-        return true;
+        var tweetTemplate = File.ReadAllText(templateFilePath);
+
+        tweetTemplate = tweetTemplate.Replace(projLocation, MainProjName);
+        tweetTemplate = tweetTemplate.Replace(repoOwner, "KinsonDigital");
+        tweetTemplate = tweetTemplate.Replace(version, releaseVersion);
+
+        SendTweet(tweetTemplate,
+            TwitterConsumerApiKey,
+            TwitterConsumerApiSecret,
+            TwitterAccessToken,
+            TwitterAccessTokenSecret);
+    }
+
+    bool IsPullRequest()
+    {
+        return GitHubActions?.IsPullRequest ?? false;
     }
 
     bool ReleaseNotesExist(ReleaseType releaseType, string version)
@@ -128,41 +117,30 @@ public partial class CICD // Common
             _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
         };
 
-        Log.Information($"Checking if the '{releaseType}' release notes exist.");
+        nameof(ReleaseNotesExist)
+            .LogRequirementTitle($"Checking if the '{releaseType}' release notes exist.");
 
-        var notesExist = (from f in Glob.Files(releaseNotesDirPath, "*.md")
+        return (from f in Glob.Files(releaseNotesDirPath, "*.md")
             where f.Contains(version)
             select f).Any();
-
-        if (notesExist)
-        {
-            Log.Information($"{ConsoleTab}✅The release notes for the '{releaseType}' release exist in the directory '{releaseNotesDirPath}'");
-        }
-        else
-        {
-            var errorMsg = $"The '{releaseType}' release notes could not be found in the directory '{releaseNotesDirPath}'.";
-            Log.Error(errorMsg);
-            Assert.Fail("Release notes could not be found.");
-        }
-
-        return notesExist;
     }
+
+    bool ReleaseNotesDoNotExist(ReleaseType releaseType, string version)
+        => !ReleaseNotesExist(releaseType, version);
 
     void PrintPullRequestInfo()
     {
         // If the build is on the server and the GitHubActions object exists
-        if (IsServerBuild && GitHubActions.Instance is not null)
+        if (IsServerBuild)
         {
-            var gitHub = GitHubActions.Instance;
-
             Log.Information("Is Server Build: {Value}", IsServerBuild);
-            Log.Information("Repository Owner: {Value}", gitHub.RepositoryOwner);
-            Log.Information("Status Check Invoked By: {Value}", gitHub.Actor);
+            Log.Information("Repository Owner: {Value}", GitHubActions?.RepositoryOwner);
+            Log.Information("Status Check Invoked By: {Value}", GitHubActions?.Actor);
             Log.Information("Is Local Build: {Value}", IsLocalBuild);
             Log.Information("Is PR: {Value}", IsPullRequest());
-            Log.Information("Ref: {Value}", gitHub.Ref);
-            Log.Information("Source Branch: {Value}", gitHub.HeadRef);
-            Log.Information("Destination Branch: {Value}", gitHub.BaseRef);
+            Log.Information("Ref: {Value}", GitHubActions?.Ref);
+            Log.Information("Source Branch: {Value}", GitHubActions?.HeadRef);
+            Log.Information("Destination Branch: {Value}", GitHubActions?.BaseRef);
         }
         else
         {
@@ -170,151 +148,115 @@ public partial class CICD // Common
         }
     }
 
-    bool ProjVersionExists()
-    {
-        var project = Solution.GetProject(MainProjName);
-
-        return !string.IsNullOrEmpty(project.GetProperty("Version"));
-    }
-
-    bool ProjFileVersionExists()
-    {
-        var project = Solution.GetProject(MainProjName);
-
-        return !string.IsNullOrEmpty(project.GetProperty("FileVersion"));
-    }
-
-    bool ProjAssemblyVersionExists()
-    {
-        var project = Solution.GetProject(MainProjName);
-
-        return !string.IsNullOrEmpty(project.GetProperty("AssemblyVersion"));
-    }
-
-    void ValidateVersions(string versionPattern)
-    {
-        var project = Solution.GetProject(MainProjName);
-
-        Log.Information("✔️ Validating that version exists in csproj file . . .");
-        if (project.AllVersionsExist() is false)
-        {
-            var failMsg = new StringBuilder();
-            failMsg.AppendLine("All of the following versions must exist in the csproj file.");
-            failMsg.AppendLine("\t- <Version/>");
-            failMsg.AppendLine("\t- <FileVersion/>");
-            failMsg.AppendLine("\t- <AssemblyVersion/>");
-
-            Log.Error(failMsg.ToString());
-
-            Assert.Fail("Project file missing version.");
-        }
-
-        Log.Information("✔️ Validating that the version syntax is valid . . .");
-        var correctVersionSyntax = project.HasCorrectVersionSyntax(versionPattern);
-
-        if (correctVersionSyntax is false)
-        {
-            var failMsg = $"The syntax for the '<Version/>' value '{project.GetVersion()}' is incorrect.";
-            failMsg += $"{Environment.NewLine}Expected Syntax: '{versionPattern}'";
-
-            Log.Error(failMsg);
-            Assert.Fail("The csproj file '<Version/>' value syntax is incorrect.");
-        }
-
-        Log.Information("✔️ Validating that the file version syntax is valid . . .");
-        var correctFileVersionSyntax = project.HasCorrectFileVersionSyntax(versionPattern);
-        if (correctFileVersionSyntax is false)
-        {
-            var failMsg = $"The syntax for the '<FileVersion/>' value '{project.GetFileVersion()}' is incorrect.";
-            failMsg += $"{Environment.NewLine}Expected Syntax: '{versionPattern}'";
-
-            Log.Error(failMsg);
-            Assert.Fail("The csproj file '<FileVersion/>' value syntax is incorrect.");
-        }
-
-        Log.Information("✔️ Validating that the assembly version syntax is valid . . .");
-        var correctAssemblyVersionSyntax = project.HasCorrectAssemblyVersionSyntax("#.#.#");
-        if (correctAssemblyVersionSyntax is false)
-        {
-            var failMsg = $"The syntax for the '<AssemblyVersion/>' value '{project.GetAssemblyVersion()}' is incorrect.";
-            failMsg += $"{Environment.NewLine}Expected Syntax: '{versionPattern}'";
-
-            Log.Error(failMsg);
-            Assert.Fail("The csproj file '<AssemblyVersion/>' value syntax is incorrect.");
-        }
-    }
-
-    void DeleteNugetPackageIfExists()
+    void DeleteAllNugetPackages()
     {
         // If the build is local, find and delete the package first if it exists.
         // This is to essentially overwrite the package so it is "updated".
         // Without doing this, the package already exists but does not get overwritten to be "updated"
         if (IsLocalBuild)
         {
-            var project = Solution.GetProject(MainProjName);
-            var version = project.GetVersion();
+            var packages = Glob.Files(NugetOutputPath, "*.nupkg").ToArray();
 
-            var packageFileName = $"{MainProjName}.{version}.nupkg";
-            var packageFilePath = $"{NugetOutputPath}/{packageFileName}";
-
-            if (File.Exists(packageFilePath))
+            foreach (var package in packages)
             {
-                File.Delete(packageFilePath);
+                var filePath = $"{NugetOutputPath}/{package}";
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
             }
         }
     }
 
-    string GetTargetBranch()
+    async Task<string> GetProdMilestoneDescription(string version)
     {
-        if (IsServerBuild && GitHubActions.Instance is not null)
-        {
-            if (IsPullRequest())
-            {
-                return GitHubActions.Instance.BaseRef;
-            }
+        version = version.StartsWith('v')
+            ? version
+            : $"v{version}";
 
-            if (string.IsNullOrEmpty(Repo.Branch))
+        var detailsStartTag = $"<details closed><summary>Preview Releases</summary>{Environment.NewLine}";
+        const string tableHeader = "|Preview Release|Total Issues|";
+        const string alignmentRow = "|:----|:----:|";
+        const string detailsEndTag = "</details>";
+
+        var issueClient = GitHubClient.Issue;
+        var request = new MilestoneRequest { State = ItemStateFilter.All };
+        var previewMilestones = (await issueClient.Milestone.GetAllForRepository(Owner, MainProjName, request))
+            .Where(m => m.Title.IsPreviewVersion() && m.Title.StartsWith(version)).ToArray();
+
+        var result = $"Container for holding everything released in version {version}";
+
+        if (previewMilestones.Length > 0)
+        {
+            var tableDataRows = previewMilestones.Select(m =>
             {
-                Assert.Fail("Cannot get branch.  Branch name is null or empty.  Maybe GIT is in the state of a detached head?");
+                var totalMilestoneIssues = issueClient.IssuesForMilestone(Owner, MainProjName, m.Title).Result.Length;
+
+                return $"{Environment.NewLine}|[🚀{m.Title}]({m.HtmlUrl})|{totalMilestoneIssues}|";
+            });
+
+            result += $"{Environment.NewLine}{detailsStartTag}";
+            result += $"{Environment.NewLine}{tableHeader}";
+            result += $"{Environment.NewLine}{alignmentRow}";
+
+            foreach (var dataRow in tableDataRows)
+            {
+                result += dataRow;
             }
         }
 
-        if ((IsLocalBuild || GitHubActions.Instance is null) && (Repo.Branch ?? string.Empty).IsNotNullOrEmpty())
-        {
-            return Repo.Branch!;
-        }
+        result += $"{Environment.NewLine}{detailsEndTag}";
 
-        Assert.Fail("Could not get the correct branch.");
-        throw new Exception();
+        return result;
     }
 
-    async Task CreateNewGitHubRelease(ReleaseType releaseType)
+    async Task<string> CreateNewGitHubRelease(ReleaseType releaseType, string version)
     {
-        try
+        if (string.IsNullOrEmpty(version))
         {
-            var project = Solution.GetProject(MainProjName);
-            var releaseClient = GitHubClient.Repository.Release;
-
-            var version = $"v{project.GetVersion()}";
-            var releaseNotesFilePath = Solution.GetReleaseNotesFilePath(releaseType, version);
-            var releaseNotes = Solution.GetReleaseNotes(releaseType, version);
-
-            var newRelease = new NewRelease(version)
-            {
-                Name = $"🚀{releaseType} Release - {version}",
-                Body = releaseNotes,
-                Prerelease = releaseType == ReleaseType.Preview,
-                TargetCommitish = "8242f49b45ed246d99fa4fc74c661e7b0c9ebdae",
-            };
-
-            var releaseResult = await releaseClient.Create(Owner, MainProjName, newRelease);
-
-            await releaseClient.UploadTextFileAsset(releaseResult, releaseNotesFilePath);
+            throw new ArgumentException("The version must not be null or empty.", nameof(version));
         }
-        catch (Exception e)
+
+        version = version.StartsWith("v")
+            ? version
+            : $"v{version}";
+
+        var validVersionSyntax = releaseType switch
         {
-            Assert.Fail(e.Message);
+            ReleaseType.Preview => version.IsPreviewVersion(),
+            ReleaseType.Production => version.IsProductionVersion(),
+            ReleaseType.HotFix => version.IsProductionVersion(),
+            _ => throw new ArgumentOutOfRangeException(nameof(releaseType), releaseType, null)
+        };
+
+        if (validVersionSyntax is false)
+        {
+            throw new ArgumentException($"The version does not have the correct syntax for a {releaseType.ToString().ToLower()} release.");
         }
+
+        var releaseNotesFilePath = Solution.BuildReleaseNotesFilePath(releaseType, version);
+        var releaseNotes = Solution.GetReleaseNotes(releaseType, version);
+
+        if (string.IsNullOrEmpty(releaseNotes))
+        {
+            throw new Exception($"The release notes could not be found at the path '{releaseNotesFilePath}'.");
+        }
+
+        var newRelease = new NewRelease(version)
+        {
+            Name = $"🚀{releaseType} Release - {version}",
+            Body = releaseNotes,
+            Prerelease = releaseType == ReleaseType.Preview,
+            Draft = false,
+            TargetCommitish = Repo.Commit,
+        };
+
+        var releaseClient = GitHubClient.Repository.Release;
+
+        var releaseResult = await releaseClient.Create(Owner, MainProjName, newRelease);
+        await releaseClient.UploadTextFileAsset(releaseResult, releaseNotesFilePath);
+
+        return releaseResult.HtmlUrl;
     }
 
     int ExtractIssueNumber(BranchType branchType, string branch)
@@ -349,272 +291,119 @@ public partial class CICD // Common
         return -1;
     }
 
+    // TODO: Possibly get rid of this
     async Task<(bool isValid, int issueNum)> BranchIssueNumberValid(BranchType branchType)
     {
-        var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
+        var sourceBranch = GitHubActions?.HeadRef ?? string.Empty;
         var issueClient = GitHubClient.Issue;
         var issueNumber = ExtractIssueNumber(branchType, sourceBranch);
 
         return (await issueClient.IssueExists(Owner, MainProjName, issueNumber), issueNumber);
     }
 
-    bool ThatPRHasBeenAssigned()
+    bool NugetPackageDoesNotExist()
     {
-        var prClient = GitHubClient.PullRequest;
+        var project = Solution.GetProject(MainProjName);
+        var errors = new List<string>();
 
-        Log.Information("Checking if the pull request as been assigned to someone.");
+        nameof(NugetPackageDoesNotExist)
+            .LogRequirementTitle($"Checking that the nuget package does not already exist.");
 
-        var prNumber = GitHubActions.Instance is null || GitHubActions.Instance.PullRequestNumber is null
-            ? -1
-            : (int)(GitHubActions.Instance.PullRequestNumber);
-
-        if (prClient.HasAssignees(Owner, MainProjName, prNumber).Result)
+        if (project is null)
         {
-            Log.Information($"{ConsoleTab}✅The pull request '{prNumber}' is properly assigned.");
-        }
-        else
-        {
-            var prLink = $"https://github.com/{Owner}/{MainProjName}/pull/{prNumber}";
-            var errorMsg = "The pull request '{Value1}' is not assigned to anyone.";
-            errorMsg += $"{ConsoleTab}To set an assignee, go to 👉🏼 '{{Value2}}'.";
-            Log.Error(errorMsg, prNumber, prLink);
-            Assert.Fail("The pull request is not assigned to anybody.");
+            errors.Add($"Could not find the project '{MainProjName}'");
         }
 
-        return true;
-    }
+        var projectVersion = project?.GetVersion() ?? string.Empty;
 
-    bool ThatPRTargetBranchIsValid(BranchType branchType)
-    {
-        var targetBranch = GitHubActions.Instance?.BaseRef ?? string.Empty;
-        var errorMsg = string.Empty;
-        var isValidBranch = false;
+        // TODO: This package name might be the owner.reponame.  It could be something different entirely
+        const string packageName = MainProjName;
+        var nugetService = new NugetDataService();
 
-        Log.Information($"Checking if pull request target branch '{targetBranch}' is valid.");
+        var packageVersions = nugetService.GetNugetVersions(packageName).Result;
 
-        switch (branchType)
+        var nugetPackageExists = packageVersions.Any(i => i == projectVersion);
+
+        if (nugetPackageExists)
         {
-            case BranchType.Develop:
-                isValidBranch = targetBranch.IsDevelopBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The development branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for the develop branch is 'develop'.";
-                }
-                break;
-            case BranchType.Master:
-                isValidBranch = targetBranch.IsDevelopBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The production branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for the production branch is 'master'.";
-                }
-                break;
-            case BranchType.Feature:
-                isValidBranch = targetBranch.IsFeatureBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
-                }
-                break;
-            case BranchType.PreviewFeature:
-                isValidBranch = targetBranch.IsPreviewFeatureBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The preview feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
-                }
-                break;
-            case BranchType.Release:
-                isValidBranch = targetBranch.IsReleaseBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The release branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
-                }
-                break;
-            case BranchType.Preview:
-                isValidBranch = targetBranch.IsPreviewBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The preview branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
-                }
-                break;
-            case BranchType.HotFix:
-                isValidBranch = targetBranch.IsHotFixBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{targetBranch}' valid.");
-                }
-                else
-                {
-                    errorMsg = "The hotfix branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
-                }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null);
+            errors.Add($"The nuget package '{packageName}' version 'v{projectVersion}' already exists.");
         }
 
-        if (isValidBranch)
+        if (errors.Count <= 0)
         {
             return true;
         }
 
-        Log.Error(errorMsg, targetBranch);
-        var runType = IsPullRequest() ? "pull request" : "manual";
-        Assert.Fail($"Invalid target branch for the {runType} run.");
+        errors.PrintErrors();
+
         return false;
     }
 
-    bool ThatPRSourceBranchIsValid(BranchType branchType)
+    string GetBranchSyntax(BranchType branchType)
+        => branchType switch
+        {
+            BranchType.Master => "master",
+            BranchType.Develop => "develop",
+            BranchType.Feature => "feature/#-*",
+            BranchType.PreviewFeature => "preview/feature/#-*",
+            BranchType.Release => "release/v#.#.#",
+            BranchType.Preview => "preview/v#.#.#-preview.#",
+            BranchType.HotFix => "hotfix/#-*",
+            BranchType.Other => "*",
+            _ => throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null)
+        };
+
+    async Task<string> MergeBranch(string sourceBranch, string targetBranch)
     {
-        var sourceBranch = GitHubActions.Instance?.HeadRef ?? string.Empty;
-        var errorMsg = string.Empty;
-        var isValidBranch = false;
+        var mergeClient = GitHubClient.Repository.Merging;
 
-        Log.Information("Validating PR Source Branch:");
-
-        switch (branchType)
+        var newMerge = new NewMerge(targetBranch, sourceBranch)
         {
-            case BranchType.Develop:
-            case BranchType.Master:
-                errorMsg = "Invalid source branch.  'master' and 'develop' branches are not aloud to be merged into another branch.";
-                Log.Error(errorMsg);
-                break;
-            case BranchType.Feature:
-                isValidBranch = sourceBranch.IsFeatureBranch();
+            CommitMessage = $"Merge the branch '{sourceBranch}' into the branch '{targetBranch}' for production release.",
+        };
 
-                if (isValidBranch)
-                {
-                    var validIssueNumResult = BranchIssueNumberValid(branchType).Result;
+        var mergeResult = await mergeClient.Create(Owner, MainProjName, newMerge);
 
-                    if (validIssueNumResult.isValid)
-                    {
-                        Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                    }
-                    else
-                    {
-                        errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
-                        errorMsg += $"{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
-                        errorMsg += $"{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
-                        Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
-                    }
-                }
-                else
-                {
-                    errorMsg = "The feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'feature/#-*'.";
-                }
-                break;
-            case BranchType.PreviewFeature:
-                isValidBranch = sourceBranch.IsPreviewFeatureBranch();
+        return mergeResult?.HtmlUrl ?? string.Empty;
+    }
 
-                if (isValidBranch)
-                {
-                    var validIssueNumResult = BranchIssueNumberValid(branchType).Result;
-
-                    if (validIssueNumResult.isValid)
-                    {
-                        Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                    }
-                    else
-                    {
-                        errorMsg = "The issue '{Value1}' does not exist for feature branch '{Value2}'.";
-                        errorMsg += $"{ConsoleTab}The source branch '{{Value2}}' must be recreated with the correct issue number.";
-                        errorMsg += $"{ConsoleTab}The syntax requirements for feature branches is '{FeatureBranchSyntax}.";
-                        Log.Error(errorMsg, validIssueNumResult.issueNum, sourceBranch);
-                    }
-                }
-                else
-                {
-                    errorMsg = "The preview feature branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for feature branches is 'preview/feature/#-*'.";
-                }
-                break;
-            case BranchType.Release:
-                isValidBranch = sourceBranch.IsReleaseBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                }
-                else
-                {
-                    errorMsg = "The release branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for release branches is 'release/v#.#.#'.";
-                }
-                break;
-            case BranchType.Preview:
-                isValidBranch = sourceBranch.IsPreviewBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                }
-                else
-                {
-                    errorMsg = "The preview branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for preview branches is 'preview/v#.#.#-preview.#'.";
-                }
-                break;
-            case BranchType.HotFix:
-                isValidBranch = sourceBranch.IsHotFixBranch();
-
-                if (isValidBranch)
-                {
-                    Log.Information($"{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.");
-                }
-                else
-                {
-                    errorMsg = "The hotfix branch '{Value}' is invalid.";
-                    errorMsg += $"{ConsoleTab}The syntax for hotfix branches is 'hotfix/#-*'.";
-                }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(branchType), branchType, null);
+    async Task<bool> ProdVersionHasPreviewReleases(string prodVersion)
+    {
+        if (prodVersion.IsProductionVersion() is false)
+        {
+            throw new Exception($"The version '{prodVersion}' must not be a preview version.");
         }
 
-        if (isValidBranch)
+        var issueClient = GitHubClient.Issue;
+        var milestoneClient = issueClient.Milestone;
+
+        var milestoneRequest = new MilestoneRequest
         {
-            return true;
+            State = ItemStateFilter.All,
+        };
+
+        var prodContainsPreviewReleases = (await milestoneClient.GetAllForRepository(Owner, MainProjName, milestoneRequest))
+            .Any(m => m.Title.IsPreviewVersion() && m.Title.StartsWith(prodVersion));
+
+        return prodContainsPreviewReleases;
+    }
+
+    async Task<bool> GetIssuesForProdVersionPreviewReleases(string version)
+    {
+        if (version.IsPreviewVersion())
+        {
+            throw new Exception($"The version '{version}' must not be a preview version.");
         }
 
-        Log.Error(errorMsg, sourceBranch);
-        Assert.Fail("Invalid pull request source branch.");
+        var issueClient = GitHubClient.Issue;
+        var milestoneClient = issueClient.Milestone;
+
+        var milestoneNames = (from m in await milestoneClient.GetAllForRepository(Owner, MainProjName)
+            where m.Title.IsPreviewVersion() && m.Title.StartsWith(version)
+            select m.Title).ToArray();
+
+        var issues = await issueClient.IssuesForMilestones(Owner, MainProjName, milestoneNames);
+
         return false;
     }
 }

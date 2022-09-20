@@ -6,16 +6,19 @@ on:
   pull_request:
     branches:
       - develop
+      - preview/v*.*.*-preview.*
+      - release/v*.*.*
+      - master
 
 # TODO: Needs to run on windows and ubuntu
 
 jobs:
   build_project:
-    name: ubuntu-latest
+    name: Build Project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Build Status Check
-        run: ./build.cmd BuildStatusCheck
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v2
+    - name: Run Build Status Check
+      run: ./build.cmd BuildStatusCheck
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

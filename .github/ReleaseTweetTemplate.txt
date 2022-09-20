@@ -1,0 +1,6 @@
+{PROJECT_NAME} {VERSION} just dropped!! 🚀
+Check it out & take it for a spin & help support development. 🤘🏼
+Release: https://github.com/{REPO_OWNER}/{PROJECT_NAME}/releases/tag/{VERSION}
+Nuget: https://www.nuget.org/packages/{PROJECT_NAME}/
+Project: https://github.com/{REPO_OWNER}/{PROJECT_NAME}
+Discord: https://discord.gg/qewu6fNgv7

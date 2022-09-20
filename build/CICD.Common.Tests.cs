@@ -1,3 +1,4 @@
+using System.Linq;
 using Nuke.Common;
 using Nuke.Common.Tools.DotNet;
 using Serilog;
@@ -8,23 +9,24 @@ namespace NukeLearningCICD;
 public partial class CICD // Common.Tests
 {
     Target RunAllUnitTests => _ => _
-        .DependsOn(RestoreSolution)
-        .Before(RunUnitTests)
-        .After(BuildTestProject)
-        .Triggers(RunUnitTests)
+        .DependsOn(RestoreSolution, BuildAllTestProjects)
+        .After(BuildAllTestProjects)
         .Executes(() =>
         {
-            Log.Information($"🧪Executing All Tests");
+            Log.Information($"🧪 Executing All Tests 🧪");
+            RunTests();
         });
 
-    Target RunUnitTests => _ => _
-        .DependsOn(RestoreSolution)
-        .After(RunAllUnitTests)
-        .Executes(() =>
+    private void RunTests()
+    {
+        var projects = Solution.AllProjects.Where(p => p.Path.Name.EndsWith("Tests.csproj"));
+
+        foreach (var project in projects)
         {
             DotNetTest(s => s
-                .SetProjectFile(TestProjPath)
+                .SetProjectFile(project.Path)
                 .SetConfiguration(Configuration)
                 .EnableNoRestore());
-        });
+        }
+    }
 }

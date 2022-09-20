@@ -1,21 +1,23 @@
-name: ✅Feature PR Status Check
+name: ✅Hot Fix PR Status Check
 
 
 on:
-  workflow_dispatch: # Add manual inputs or remove
+  workflow_dispatch:
   pull_request:
     branches:
-      - develop
+      - master
+
 
 # TODO: Needs to run on windows and ubuntu
 
 jobs:
   build_project:
+    if: contains(github.ref, 'refs/pull') && startsWith(github.head_ref, 'hotfix/')
     name: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Run Feature PR Status Check
-      run: ./build.cmd FeaturePRStatusCheck
+    - name: Run Build Status Check
+      run: ./build.cmd HotFixPRStatusCheck
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

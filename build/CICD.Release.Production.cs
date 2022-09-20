@@ -4,27 +4,28 @@ using Serilog;
 
 namespace NukeLearningCICD;
 
-public partial class CICD // Release.Preview
+public partial class CICD // Release.Production
 {
-    Target RunPreviewRelease => _ => _
+    Target RunProductionRelease => _ => _
         .Requires(
-            () => ThatThisIsExecutedManually(BranchType.Release),
-            () => ThatTheCurrentBranchIsCorrect(BranchType.Release),
-            () => ThatTheProjectVersionsAreValid(ReleaseType.Preview),
-            () => ThatTheCurrentBranchVersionMatchesProjectVersion(BranchType.Release),
-            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
+            () => ThatThisIsExecutedManually(BranchType.Master),
+            () => ThatTheCurrentBranchIsCorrect(BranchType.Master),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Production),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Production),
             () => ThatTheReleaseMilestoneExists(),
             () => ThatTheReleaseMilestoneContainsIssues(),
             () => ThatAllMilestoneIssuesHaveLabels(),
             () => ThatAllMilestonePullRequestsHaveLabels(),
-            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Preview, false),
-            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Preview, false),
-            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.Issue),
-            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.PullRequest),
-            () => ThatTheReleaseNotesExist(ReleaseType.Preview),
-            () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Preview),
-            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Preview),
-            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Preview),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Production, false),
+            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Production, false),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Production, ItemType.Issue),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Production, ItemType.PullRequest),
+            () => ThatTheReleaseNotesExist(ReleaseType.Production),
+            () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Production),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseSection(),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseItems(),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Production),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Production),
             () => NugetPackageDoesNotExist()
         )
         .After(BuildAllProjects, RunAllUnitTests)
@@ -43,13 +44,14 @@ public partial class CICD // Release.Preview
                 Assert.Fail("Release failed.  Could not get version information.");
             }
 
-            Log.Information($"🚀 Starting preview release process for version '{version}' 🚀");
+            Log.Information($"🚀 Starting production release process for version '{version}' 🚀");
 
             try
             {
                 // Create a GitHub release
-                var releaseUrl = await CreateNewGitHubRelease(ReleaseType.Preview, version);
-                var githubReleaseLog = $"The GitHub preview release for version '{version}' was successful!!🚀";
+                Log.Information("✅Creating new GitHub release . . .");
+                var releaseUrl = await CreateNewGitHubRelease(ReleaseType.Production, version);
+                var githubReleaseLog = $"The GitHub production release for version '{version}' was successful!!🚀";
                 githubReleaseLog += $"{Environment.NewLine}{ConsoleTab}To view the release, go here 👉🏼 {releaseUrl}{Environment.NewLine}";
                 Log.Information(githubReleaseLog);
 
@@ -63,7 +65,7 @@ public partial class CICD // Release.Preview
 
                 // Update the milestone description
                 Log.Information($"✅Updating description for milestone '{version}' . . .");
-                var description = $"Container for holding everything released in version {version}";
+                var description = await GetProdMilestoneDescription(version);
                 var updatedMilestone = await milestoneClient.UpdateMilestoneDescription(Owner, MainProjName, version, description);
                 var updateMsg = $"The GitHub Milestone '{version}' description has been updated.";
                 updateMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {updatedMilestone.HtmlUrl}{Environment.NewLine}";
@@ -90,6 +92,26 @@ public partial class CICD // Release.Preview
                 Log.Information("✅Announcing release on twitter . . .");
                 SendReleaseTweet(tweetTemplatePath, version);
                 Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+
+                // Merge the master branch into the develop branch
+                Log.Information("✅Merging 'master' branch into the 'develop' branch . . .");
+                var mergeResultUrl = await MergeBranch("master", "develop");
+                string mergeLog;
+
+                // If the merge result URL is null or empty, something went wrong like a merge conflict
+                if (string.IsNullOrEmpty(mergeResultUrl))
+                {
+                    mergeLog = "Something went wrong merging the 'master' branch into the 'develop' branch.";
+                    mergeLog += $"{Environment.NewLine}{ConsoleTab}There most likely was a merge conflict.";
+                    mergeLog += $"{Environment.NewLine}{ConsoleTab}Manually resolve the merge conflict and merge the 'master' branch into the 'develop' branch.";
+                    Log.Warning(mergeLog);
+                }
+                else
+                {
+                    mergeLog = $"The 'master' branch has been merged into the 'develop' branch.";
+                    mergeLog += $"{Environment.NewLine}{ConsoleTab}To view the merge result, go here 👉🏼 {mergeResultUrl}";
+                    Log.Information(mergeLog);
+                }
             }
             catch (Exception e)
             {

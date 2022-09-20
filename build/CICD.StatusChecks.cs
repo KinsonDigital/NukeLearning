@@ -1,22 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Nuke.Common;
-using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.Tools.GitHub;
 using Octokit;
 using Serilog;
-using Serilog.Events;
-using static Nuke.Common.Tools.Git.GitTasks;
 
 namespace NukeLearningCICD;
 
 public partial class CICD // StatusChecks
 {
     Target BuildStatusCheck => _ => _
-        .Before(BuildAllProjects, BuildMainProject, BuildTestProject)
+        .Before(BuildAllProjects)
         .Triggers(BuildAllProjects)
         .Executes(async () =>
         {
@@ -30,7 +27,7 @@ public partial class CICD // StatusChecks
 
 
     Target UnitTestStatusCheck => _ => _
-        .Before(RunAllUnitTests, RunUnitTests)
+        .Before(RunAllUnitTests)
         .Triggers(RunAllUnitTests)
         .Executes(async () =>
         {
@@ -46,273 +43,130 @@ public partial class CICD // StatusChecks
         });
 
 
-    Target ValidFeaturePRStatusCheck => _ => _
+    Target FeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatRunIsForPullRequest(nameof(ValidFeaturePRStatusCheck), RunType.StatusCheck),
-            () => ThatPRSourceBranchIsValid(BranchType.Feature),
-            () => ThatPRTargetBranchIsValid(BranchType.Develop),
-            () => ThatPRHasBeenAssigned()
+            () => ThatThisIsExecutedFromPullRequest(BranchType.Develop),
+            () => ThatThePRSourceBranchIsValid(BranchType.Feature),
+            () => ThatFeaturePRIssueNumberExists(),
+            () => ThatFeaturePRIssueHasLabel(BranchType.Feature),
+            () => ThatThePRTargetBranchIsValid(BranchType.Develop),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatPRHasLabels()
         );
 
 
-    Target ValidPreviewFeaturePRStatusCheck => _ => _
+    Target PreviewFeaturePRStatusCheck => _ => _
         .Requires(
-            () => ThatRunIsForPullRequest(nameof(ValidPreviewFeaturePRStatusCheck), RunType.StatusCheck),
-            () => ThatPRSourceBranchIsValid(BranchType.PreviewFeature),
-            () => ThatPRTargetBranchIsValid(BranchType.Preview),
-            () => ThatPRHasBeenAssigned()
+            () => ThatThisIsExecutedFromPullRequest(BranchType.PreviewFeature),
+            () => ThatThePRSourceBranchIsValid(BranchType.PreviewFeature),
+            () => ThatPreviewFeaturePRIssueNumberExists(),
+            () => ThatFeaturePRIssueHasLabel(BranchType.PreviewFeature),
+            () => ThatThePRTargetBranchIsValid(BranchType.Preview),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatPRHasLabels()
         );
 
 
-    Target ValidVersionStatusCheck => _ => _
-        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
-        .Executes(() =>
-        {
-            var releaseType = GetTargetBranch().IsMasterBranch()
-                ? ReleaseType.Production
-                : ReleaseType.Preview;
-
-            var msg = "💡Purpose: Verifies that all of the versions exist in the csproj file";
-            msg += $"{ConsoleTab}and that the version syntax is correct.";
-
-            Log.Information(msg);
-            Console.WriteLine();
-            Log.Information("✅Starting Status Check . . .");
-            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
-            Log.Information("Type Of Release: {Value}", releaseType);
-
-            var branch = GetTargetBranch();
-
-            if (branch.IsReleaseBranch())
-            {
-                ValidateVersions("#.#.#-preview.#");
-                return;
-            }
-
-            if (branch.IsMasterBranch())
-            {
-                ValidateVersions("#.#.#");
-                return;
-            }
-
-            Assert.Fail($"The branch must be a 'master' or 'release/v#.#.#' branch, but was executed on the '{GetTargetBranch()}' branch.");
-        });
+    Target HotFixPRStatusCheck => _ => _
+        .Requires(
+            () => ThatThisIsExecutedFromPullRequest(BranchType.Master),
+            () => ThatThePRSourceBranchIsValid(BranchType.HotFix),
+            () => ThatPreviewFeaturePRIssueNumberExists(),
+            () => ThatFeaturePRIssueHasLabel(BranchType.HotFix),
+            () => ThatThePRTargetBranchIsValid(BranchType.Master),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatPRHasLabels()
+        );
 
 
-    Target NoGitHubReleaseStatusCheck => _ => _
-        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
-        .Executes(async () =>
-        {
-            var project = Solution.GetProject(MainProjName);
-            var version = $"v{(project is null ? string.Empty : project.GetVersion())}";
-            var releaseType = GetTargetBranch().IsMasterBranch()
-                ? ReleaseType.Production.ToString().ToLower()
-                : ReleaseType.Preview.ToString().ToLower();
-
-            var msg = $"💡Purpose: Verifies that no GitHub release already exists for the current version.";
-            msg += $"{ConsoleTab}This status check is only intended to be executed for preview and production releases.";
-
-            Log.Information(msg);
-            Console.WriteLine();
-            Log.Information("✅Starting Status Check . . .");
-            Log.Information("Current Version: {Value}", version);
-            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
-            Log.Information("Type Of Release: {Value}", releaseType);
-
-            var releaseExists = await GitHubClient.Repository.Release.ReleaseExists(Owner, MainProjName, version);
-
-            if (releaseExists)
-            {
-                var errorMsg = "A release for version '{Value}' already exist.";
-                errorMsg += $"{ConsoleTab}Did you forget to update the version values in the csproj file?";
-                Log.Error(errorMsg, version);
-                Assert.Fail($"A release for version '{version}' already exists.");
-            }
-        });
+    Target PrevReleasePRStatusCheck => _ => _
+        .Requires(
+            () => ThatThisIsExecutedFromPullRequest(BranchType.Release),
+            () => ThatThePRSourceBranchIsValid(BranchType.Preview),
+            () => ThatThePRTargetBranchIsValid(BranchType.Release),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatThePRHasTheLabel("🚀Preview Release"),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Preview),
+            () => ThatThePreviewPRBranchVersionsMatch(ReleaseType.Preview),
+            () => ThatThePRSourceBranchVersionSectionMatchesProjectVersion(ReleaseType.Preview),
+            () => ThatTheReleaseMilestoneExists(),
+            () => ThatTheReleaseMilestoneContainsIssues(),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Preview),
+            () => ThatAllMilestoneIssuesHaveLabels(),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Preview, true),
+            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Preview, true),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.Issue),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.PullRequest),
+            () => ThatTheReleaseNotesExist(ReleaseType.Preview),
+            () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Preview),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Preview),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Preview),
+            () => NugetPackageDoesNotExist()
+        );
 
 
-    Target ReleaseNotesExistStatusCheck => _ => _
-        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
-        .Executes(() =>
-        {
-            var project = Solution.GetProject(MainProjName);
-            var version = $"v{(string.IsNullOrEmpty(project) ? string.Empty : project.GetVersion())}";
-            var releaseType = GetTargetBranch().IsMasterBranch()
-                ? ReleaseType.Production
-                : ReleaseType.Preview;
-
-            var releaseTypeStr = releaseType.ToString().ToLower();
-
-            var msg = $"💡Purpose: Verifies that the {releaseTypeStr} release notes exist for the current version.";
-            msg += $"{ConsoleTab}This status check is only meant to be intended for preview and production releases.";
-
-            Log.Information(msg);
-            Console.WriteLine();
-            Log.Information("✅Starting Status Check . . .");
-            Log.Information("Current Version: {Value}", version);
-            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
-            Log.Information("Type Of Release: {Value}", releaseTypeStr);
-
-            if (ReleaseNotesExist(releaseType, version) is false)
-            {
-                var errorMsg = $"The {releaseTypeStr} release notes for version '{version}' could not be found.";
-                Log.Error(errorMsg);
-                Assert.Fail($"The {releaseTypeStr} release notes could not be found.");
-            }
-        });
-
-
-    Target MilestoneExistsStatusCheck => _ => _
-        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
-        .Executes(async () =>
-        {
-            var project = Solution.GetProject(MainProjName);
-            var version = $"v{(string.IsNullOrEmpty(project) ? string.Empty : project.GetVersion())}";
-            var releaseType = GetTargetBranch().IsMasterBranch()
-                ? ReleaseType.Production.ToString().ToLower()
-                : ReleaseType.Preview.ToString().ToLower();
-
-            var msg = $"💡Purpose: Verifies that the GitHub {releaseType} milestone exists.";
-            msg += $"{ConsoleTab}A milestone must exist and contain issues before a release can be performed.";
-
-            Log.Information(msg);
-            Console.WriteLine();
-            Log.Information("✅Starting Status Check . . .");
-            Log.Information("Current Version: {Value}", version);
-            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
-            Log.Information("Type Of Release: {Value}", releaseType);
-
-            var milestoneClient = GitHubClient.Issue.Milestone;
-
-            if (await milestoneClient.MilestoneExists(Owner, MainProjName, version) is false)
-            {
-                const string newMilestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
-                var errorMsg = "The milestone '{Value1}' does not exist.";
-                errorMsg += $"{ConsoleTab}To create a milestone, go to this URL here 👉🏼 {{Value2}}";
-                Log.Error(errorMsg, version, newMilestoneUrl);
-                Assert.Fail($"Milestone {version} does not exist.");
-            }
-        });
-
-
-    Target MilestoneStateStatusCheck => _ => _
-        .Requires(() => GetTargetBranch().IsMasterBranch() || GetTargetBranch().IsReleaseBranch())
-        .Executes(async () =>
-        {
-            var project = Solution.GetProject(MainProjName);
-            var version = $"v{(string.IsNullOrEmpty(project) ? string.Empty : project.GetVersion())}";
-            var releaseType = GetTargetBranch().IsMasterBranch()
-                ? ReleaseType.Production.ToString().ToLower()
-                : ReleaseType.Preview.ToString().ToLower();
-
-            var msg = $"💡Purpose: Verifies that the GitHub {releaseType} milestone is in the correct state.";
-            msg += $"{ConsoleTab}This correct state means that all of the issues are closed and pull requests are merged.";
-
-            Log.Information(msg);
-            Console.WriteLine();
-            Log.Information("✅Starting Status Check . . .");
-            Log.Information("Current Version: {Value}", version);
-            Log.Information("Executing On Branch: {Value}", GetTargetBranch());
-            Log.Information("Type Of Release: {Value}", releaseType);
-
-            var milestoneClient = GitHubClient.Issue.Milestone;
-            var milestone = await milestoneClient.GetByTitle(Owner, MainProjName, version);
-
-            if (milestone is null)
-            {
-                const string newMilestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
-                const string errorMsg = "The milestone '{{Value1}}' does not exist.  To create a new milestone, go here 👉🏼 {Value2}";
-                Log.Error(errorMsg, version, newMilestoneUrl);
-                Assert.Fail($"Could not find the milestone '{version}' to analyze its state.");
-            }
-            else
-            {
-                // If all of the issues are not closed
-                if (milestone.OpenIssues > 0)
-                {
-                    var errorMsg = $"Some issues are still open for milestone '{version}'.";
-                    errorMsg += $"{ConsoleTab}Please close all open issues before attempting a release.";
-                    errorMsg += $"{ConsoleTab}Goto the milestone here 👉🏼 {milestone.HtmlUrl}";
-                    Log.Error(errorMsg);
-                    Assert.Fail($"Milestone {version} still contains open issues.");
-                }
-                else
-                {
-                    var errorMsg = $"No issues and pull requests have been added to the milestone '{version}'.";
-                    errorMsg += $"{ConsoleTab}Please add all issues and pull requests to the milestone.";
-                    Log.Error(errorMsg);
-                    Assert.Fail($"Milestone {version} does not contain any issues.");
-                }
-            }
-        });
-
-
-    Target TagDoesNotExistStatusCheck => _ => _
-        .Executes(async () =>
-        {
-            var repoClient = GitHubClient.Repository;
-
-            var project = Solution.GetProject(MainProjName);
-            var version = project is null ? string.Empty : project.GetVersion();
-
-            var tagExists = await repoClient.TagExists(Owner, MainProjName, version);
-
-            if (tagExists)
-            {
-                var errorMsg = "The tag '{Value}' already exists.  If doing a production or preview release, the tag must not already exist.";
-                errorMsg += $"{ConsoleTab}The tag is auto created upon release.";
-                Log.Error(errorMsg);
-                Assert.Fail($"The tag '{version}' already exists.");
-            }
-        });
-
-
-    Target ValidPreviewBranchVersionStatusCheck => _ => _
-        .Requires(() => GetTargetBranch().IsReleaseBranch())
-        .Executes(async () =>
-        {
-            // TODO: Empty.  Delete or do something with this
-        });
+    Target ProdReleasePRStatusCheck => _ => _
+        .Requires(
+            () => ThatThisIsExecutedFromPullRequest(BranchType.Master, BranchType.Develop),
+            () => ThatThePRSourceBranchIsValid(BranchType.Release),
+            () => ThatThePRTargetBranchIsValid(BranchType.Master),
+            () => ThatThePRHasBeenAssigned(),
+            () => ThatThePRHasTheLabel("🚀Production Release"),
+            () => ThatTheProjectVersionsAreValid(ReleaseType.Production),
+            () => ThatThePreviewPRBranchVersionsMatch(ReleaseType.Production),
+            () => ThatThePRSourceBranchVersionSectionMatchesProjectVersion(ReleaseType.Production),
+            () => ThatTheReleaseMilestoneExists(),
+            () => ThatTheReleaseMilestoneContainsIssues(),
+            () => ThatTheReleaseTagDoesNotAlreadyExist(ReleaseType.Production),
+            () => ThatAllMilestoneIssuesHaveLabels(),
+            () => ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Production, true),
+            () => ThatAllOfTheReleaseMilestonePullRequestsAreClosed(ReleaseType.Production, true),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Production, ItemType.Issue),
+            () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Production, ItemType.PullRequest),
+            () => ThatTheReleaseNotesExist(ReleaseType.Production),
+            () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Production),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseSection(),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseItems(),
+            () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Production),
+            () => ThatGitHubReleaseDoesNotExist(ReleaseType.Production),
+            () => NugetPackageDoesNotExist()
+        );
 
 
     Target DebugTask => _ => _
         .Executes(async () =>
         {
-            var prClient = GitHubClient.PullRequest;
-
-            var hasReviewers = await prClient.HasReviewers(Owner, MainProjName, 6);
         });
 
 
     async Task ValidateBranchForStatusCheck()
     {
-        var github = GitHubActions.Instance;
         var validBranch = false;
         var branch = string.Empty;
 
         // This is if the workflow is execution locally or manually in GitHub using workflow_dispatch
         bool ValidBranchForManualExecution()
         {
-            return Repo.Branch.IsMasterBranch() ||
-                   Repo.Branch.IsDevelopBranch() ||
-                   Repo.Branch.IsFeatureBranch() ||
-                   Repo.Branch.IsPreviewFeatureBranch() ||
-                   Repo.Branch.IsPreviewBranch() ||
-                   Repo.Branch.IsReleaseBranch() ||
-                   Repo.Branch.IsHotFixBranch();
+            return (Repo.Branch?.IsMasterBranch() ?? false) ||
+                   (Repo.Branch?.IsDevelopBranch() ?? false) ||
+                   (Repo.Branch?.IsFeatureBranch() ?? false) ||
+                   (Repo.Branch?.IsPreviewFeatureBranch() ?? false) ||
+                   (Repo.Branch?.IsPreviewBranch() ?? false) ||
+                   (Repo.Branch?.IsReleaseBranch() ?? false) ||
+                   (Repo.Branch?.IsHotFixBranch() ?? false);
         }
 
         // If the build is on the server and the GitHubActions object exists
-        if (IsServerBuild && github is not null)
+        if (IsServerBuild && GitHubActions is not null)
         {
             validBranch = IsPullRequest()
-                ? github.BaseRef.IsPreviewBranch() || github.BaseRef.IsReleaseBranch() ||
-                  github.BaseRef.IsDevelopBranch() || github.BaseRef.IsMasterBranch()
-                : ValidBranchForManualExecution();
+                ? GitHubActions.BaseRef.IsPreviewBranch() || GitHubActions.BaseRef.IsReleaseBranch() ||
+                  GitHubActions.BaseRef.IsDevelopBranch() || GitHubActions.BaseRef.IsMasterBranch()
+                : ValidBranchForManualExecution(); // Manual execution
 
-            branch = IsPullRequest() ? github.BaseRef : Repo.Branch;
+            branch = IsPullRequest() ? GitHubActions.BaseRef : Repo.Branch;
         }
-        else if (IsLocalBuild || github is null)
+        else if (IsLocalBuild || GitHubActions is null)
         {
             validBranch = ValidBranchForManualExecution();
             branch = Repo.Branch;
