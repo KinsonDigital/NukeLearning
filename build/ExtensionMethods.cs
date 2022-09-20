@@ -457,7 +457,7 @@ public static class ExtensionMethods
     public static async Task<Issue[]> IssuesForMilestone(
         this IIssuesClient client,
         string owner,
-        string name,
+        string repoName,
         string milestoneName)
     {
         var issueRequest = new RepositoryIssueRequest
@@ -466,7 +466,7 @@ public static class ExtensionMethods
             State = ItemStateFilter.All,
         };
 
-        var issues = (await client.GetAllForRepository(owner, name, issueRequest))
+        var issues = (await client.GetAllForRepository(owner, repoName, issueRequest))
             .Where(i =>
                 i.PullRequest is null &&
                 i.Milestone is not null &&
@@ -572,10 +572,10 @@ public static class ExtensionMethods
     public static async Task<bool> ReleaseExists(
         this IReleasesClient client,
         string owner,
-        string name,
+        string repoName,
         string tag)
     {
-        return (from r in await client.GetAll(owner, name)
+        return (from r in await client.GetAll(owner, repoName)
             where r.TagName == tag
             select r).ToArray().Any();
     }
@@ -619,10 +619,10 @@ public static class ExtensionMethods
     public static async Task<bool> MilestoneExists(
         this IMilestonesClient client,
         string owner,
-        string name,
+        string repoName,
         string version)
     {
-        return (from m in await client.GetAllForRepository(owner, name)
+        return (from m in await client.GetAllForRepository(owner, repoName)
             where m.Title == version
             select m).Any();
     }
@@ -688,16 +688,16 @@ public static class ExtensionMethods
         this IMilestonesClient client,
         string owner,
         string repoName,
-        string name,
+        string milestoneName,
         string description)
     {
         var milestones = await client.GetAllForRepository(owner, repoName);
 
-        var foundMilestone = milestones.FirstOrDefault(m => m.Title == name);
+        var foundMilestone = milestones.FirstOrDefault(m => m.Title == milestoneName);
 
         if (foundMilestone is null)
         {
-            throw new NotFoundException($"A milestone with the title/name '{name}' was not found", HttpStatusCode.NotFound);
+            throw new NotFoundException($"A milestone with the title/name '{milestoneName}' was not found", HttpStatusCode.NotFound);
         }
 
         var mileStoneUpdate = new MilestoneUpdate()
@@ -709,7 +709,7 @@ public static class ExtensionMethods
 
         if (updatedMilestone is null)
         {
-            throw new Exception($"The milestone '{name}' description could not be updated.");
+            throw new Exception($"The milestone '{milestoneName}' description could not be updated.");
         }
 
         return updatedMilestone;

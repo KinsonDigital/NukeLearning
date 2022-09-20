@@ -168,6 +168,48 @@ public partial class CICD // Common
         }
     }
 
+    async Task<string> GetProdMilestoneDescription(string version)
+    {
+        version = version.StartsWith('v')
+            ? version
+            : $"v{version}";
+
+        var detailsStartTag = $"<details closed><summary>Preview Releases</summary>{Environment.NewLine}";
+        const string tableHeader = "|Preview Release|Total Issues|";
+        const string alignmentRow = "|:----|:----:|";
+        const string detailsEndTag = "</details>";
+
+        var issueClient = GitHubClient.Issue;
+        var request = new MilestoneRequest { State = ItemStateFilter.All };
+        var previewMilestones = (await issueClient.Milestone.GetAllForRepository(Owner, MainProjName, request))
+            .Where(m => m.Title.IsPreviewVersion() && m.Title.StartsWith(version)).ToArray();
+
+        var result = $"Container for holding everything released in version {version}";
+
+        if (previewMilestones.Length > 0)
+        {
+            var tableDataRows = previewMilestones.Select(m =>
+            {
+                var totalMilestoneIssues = issueClient.IssuesForMilestone(Owner, MainProjName, m.Title).Result.Length;
+
+                return $"{Environment.NewLine}|[🚀{m.Title}]({m.HtmlUrl})|{totalMilestoneIssues}|";
+            });
+
+            result += $"{Environment.NewLine}{detailsStartTag}";
+            result += $"{Environment.NewLine}{tableHeader}";
+            result += $"{Environment.NewLine}{alignmentRow}";
+
+            foreach (var dataRow in tableDataRows)
+            {
+                result += dataRow;
+            }
+        }
+
+        result += $"{Environment.NewLine}{detailsEndTag}";
+
+        return result;
+    }
+
     async Task<string> CreateNewGitHubRelease(ReleaseType releaseType, string version)
     {
         if (string.IsNullOrEmpty(version))

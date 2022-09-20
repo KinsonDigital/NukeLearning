@@ -66,7 +66,7 @@ public partial class CICD // Release.Production
 
                 // Update the milestone description
                 Log.Information($"✅Updating description for milestone '{version}' . . .");
-                var description = $"Container for holding everything released in version {version}";
+                var description = await GetProdMilestoneDescription(version);
                 var updatedMilestone = await milestoneClient.UpdateMilestoneDescription(Owner, MainProjName, version, description);
                 var updateMsg = $"The GitHub Milestone '{version}' description has been updated.";
                 updateMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {updatedMilestone.HtmlUrl}{Environment.NewLine}";
