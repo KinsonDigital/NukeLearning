@@ -796,7 +796,7 @@ public static class ExtensionMethods
     public static void LogAsInfo(this IReadOnlyList<Issue> issues, int totalIndentSpaces = 0)
         => Log.Information(issues.GetLogText(totalIndentSpaces));
 
-    public static string GetReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)
+    public static string BuildReleaseNotesFilePath(this Solution solution, ReleaseType releaseType, string version)
     {
         const string relativeDir = "Documentation/ReleaseNotes";
 
@@ -818,7 +818,7 @@ public static class ExtensionMethods
 
     public static string GetReleaseNotes(this Solution solution, ReleaseType releaseType, string version)
     {
-        var fullFilePath = solution.GetReleaseNotesFilePath(releaseType, version);
+        var fullFilePath = solution.BuildReleaseNotesFilePath(releaseType, version);
 
         if (File.Exists(fullFilePath) is false)
         {
@@ -836,7 +836,7 @@ public static class ExtensionMethods
 
     public static string[] GetReleaseNotesAsLines(this Solution solution, ReleaseType releaseType, string version)
     {
-        var fullFilePath = solution.GetReleaseNotesFilePath(releaseType, version);
+        var fullFilePath = solution.BuildReleaseNotesFilePath(releaseType, version);
 
         if (File.Exists(fullFilePath) is false)
         {

@@ -168,7 +168,7 @@ public partial class CICD // Common
         }
     }
 
-    async Task CreateNewGitHubRelease(ReleaseType releaseType, string version)
+    async Task<string> CreateNewGitHubRelease(ReleaseType releaseType, string version)
     {
         if (string.IsNullOrEmpty(version))
         {
@@ -192,8 +192,7 @@ public partial class CICD // Common
             throw new ArgumentException($"The version does not have the correct syntax for a {releaseType.ToString().ToLower()} release.");
         }
 
-        // TODO: Rename GetReleaseNotesFilePath to BuildReleaseNotesFilePath
-        var releaseNotesFilePath = Solution.GetReleaseNotesFilePath(releaseType, version);
+        var releaseNotesFilePath = Solution.BuildReleaseNotesFilePath(releaseType, version);
         var releaseNotes = Solution.GetReleaseNotes(releaseType, version);
 
         if (string.IsNullOrEmpty(releaseNotes))
@@ -209,17 +208,12 @@ public partial class CICD // Common
             TargetCommitish = Repo.Commit,
         };
 
-        try
-        {
-            var releaseClient = GitHubClient.Repository.Release;
+        var releaseClient = GitHubClient.Repository.Release;
 
-            var releaseResult = await releaseClient.Create(Owner, MainProjName, newRelease);
-            await releaseClient.UploadTextFileAsset(releaseResult, releaseNotesFilePath);
-        }
-        catch (Exception e)
-        {
+        var releaseResult = await releaseClient.Create(Owner, MainProjName, newRelease);
+        await releaseClient.UploadTextFileAsset(releaseResult, releaseNotesFilePath);
 
-        }
+        return releaseResult.HtmlUrl;
     }
 
     int ExtractIssueNumber(BranchType branchType, string branch)
@@ -327,7 +321,7 @@ public partial class CICD // Common
 
         var mergeResult = await mergeClient.Create(Owner, MainProjName, newMerge);
 
-        return mergeResult.HtmlUrl;
+        return mergeResult?.HtmlUrl ?? string.Empty;
     }
 
     async Task<bool> ProdVersionHasPreviewReleases(string prodVersion)
@@ -366,8 +360,6 @@ public partial class CICD // Common
             select m.Title).ToArray();
 
         var issues = await issueClient.IssuesForMilestones(Owner, MainProjName, milestoneNames);
-
-
 
         return false;
     }

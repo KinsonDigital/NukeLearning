@@ -48,9 +48,10 @@ public partial class CICD // Release.Preview
             try
             {
                 // Create a GitHub release
-                Log.Information("✅Creating new GitHub release . . .");
-                await CreateNewGitHubRelease(ReleaseType.Preview, version);
-                Log.Information($"The GitHub preview release for version '{version}' was successful!!{Environment.NewLine}");
+                var releaseUrl = await CreateNewGitHubRelease(ReleaseType.Preview, version);
+                var githubReleaseLog = $"The GitHub preview release for version '{version}' was successful!!🚀";
+                githubReleaseLog += $"{Environment.NewLine}{ConsoleTab}To view the release, go here 👉🏼 {releaseUrl}{Environment.NewLine}";
+                Log.Information(githubReleaseLog);
 
                 // Close the milestone
                 Log.Information($"✅Closing GitHub milestone '{version}' . . .");
@@ -79,8 +80,11 @@ public partial class CICD // Release.Preview
 
                 // Publish nuget package to nuget.org
                 Log.Information("✅Publishing nuget package to nuget.org . . .");
+                var nugetUrl = $"https://www.nuget.org/packages/{Owner}.{MainProjName}/{version.TrimStart('v')}";
                 PublishNugetPackage();
-                Log.Information($"Nuget package published!!{Environment.NewLine}");
+                var nugetReleaseLog = "Nuget package published!!🚀";
+                nugetReleaseLog += $"To view the nuget package, go here 👉🏼 {nugetUrl}";
+                Log.Information(nugetReleaseLog);
 
                 // Tweet about release
                 Log.Information("✅Announcing release on twitter . . .");

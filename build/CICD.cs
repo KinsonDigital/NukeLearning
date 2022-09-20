@@ -48,28 +48,14 @@ public partial class CICD : NukeBuild
     {
         var repo = GitRepository.FromLocalDirectory(RootDirectory);
 
-        if (IsLocalBuild)
+        if (IsLocalBuild || GitHubActions.Instance is null)
         {
             return (repo.Branch ?? string.Empty).IsMasterBranch()
                 ? Configuration.Release
                 : Configuration.Debug;
         }
 
-        if (GitHubActions.Instance is null)
-        {
-            return (repo.Branch ?? string.Empty).IsMasterBranch()
-                ? Configuration.Release
-                : Configuration.Debug;
-        }
-
-        if (GitHubActions.Instance.IsPullRequest)
-        {
-            return (GitHubActions.Instance?.BaseRef  ?? string.Empty).IsMasterBranch()
-                ? Configuration.Release
-                : Configuration.Debug;
-        }
-
-        return (repo.Branch ?? string.Empty).IsMasterBranch()
+        return (GitHubActions.Instance?.BaseRef  ?? string.Empty).IsMasterBranch()
             ? Configuration.Release
             : Configuration.Debug;
     }

@@ -1255,7 +1255,9 @@ public partial class CICD // Requirements
 
         if (errors.Count <= 0)
         {
-            Log.Information("Release notes check for preview release content complete.");
+            var logMsg = $"The production release '{prodVersion}' does not have any previous preview releases.";
+            logMsg += $"{Environment.NewLine}{ConsoleTab}Release notes check for preview release items complete.";
+            Log.Information(logMsg);
             return true;
         }
 
@@ -1335,7 +1337,9 @@ public partial class CICD // Requirements
 
         if (errors.Count <= 0)
         {
-            Log.Information("Release notes check for preview release items complete.");
+            var logMsg = $"The production release '{prodVersion}' does not have any previous preview releases.";
+            logMsg += $"{Environment.NewLine}{ConsoleTab}Release notes check for preview release items complete.";
+            Log.Information(logMsg);
             return true;
         }
 
