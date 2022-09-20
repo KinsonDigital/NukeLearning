@@ -136,10 +136,6 @@ public partial class CICD // StatusChecks
     Target DebugTask => _ => _
         .Executes(async () =>
         {
-            // var issueClient = GitHubClient.Issue;
-            // var issuesForMilestone = await issueClient.IssuesForMilestone(Owner, MainProjName, "v1.2.3");
-
-            var result = ThatAllOfTheReleaseMilestoneIssuesAreClosed(ReleaseType.Production, false);
         });
 
 

@@ -80,25 +80,38 @@ public partial class CICD // Release.Production
                 CreateNugetPackage();
                 Log.Information($"Nuget package created at location '{nugetPath}'{Environment.NewLine}");
 
-                // // Publish nuget package to nuget.org
-                // Log.Information("✅Publishing nuget package to nuget.org . . .");
-                // var nugetUrl = $"https://www.nuget.org/packages/{Owner}.{MainProjName}/{version.TrimStart('v')}";
-                // PublishNugetPackage();
-                // var nugetReleaseLog = "Nuget package published!!🚀";
-                // nugetReleaseLog += $"To view the nuget package, go here 👉🏼 {nugetUrl}";
-                // Log.Information(nugetReleaseLog);
-                //
-                // // Tweet about release
-                // Log.Information("✅Announcing release on twitter . . .");
-                // SendReleaseTweet(tweetTemplatePath, version);
-                // Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
-                //
-                // // Merge the master branch into the develop branch
-                // Log.Information("✅Merging 'master' branch into the 'develop' branch . . .");
-                // var mergeResultUrl = await MergeBranch("master", "develop");
-                // var mergeLog = $"The 'master' branch has been merged into the 'develop' branch.";
-                // mergeLog += $"{Environment.NewLine}{ConsoleTab}To view the merge result, go here 👉🏼 {mergeResultUrl}";
-                // Log.Information(mergeLog);
+                // Publish nuget package to nuget.org
+                Log.Information("✅Publishing nuget package to nuget.org . . .");
+                var nugetUrl = $"https://www.nuget.org/packages/{Owner}.{MainProjName}/{version.TrimStart('v')}";
+                PublishNugetPackage();
+                var nugetReleaseLog = "Nuget package published!!🚀";
+                nugetReleaseLog += $"To view the nuget package, go here 👉🏼 {nugetUrl}";
+                Log.Information(nugetReleaseLog);
+
+                // Tweet about release
+                Log.Information("✅Announcing release on twitter . . .");
+                SendReleaseTweet(tweetTemplatePath, version);
+                Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+
+                // Merge the master branch into the develop branch
+                Log.Information("✅Merging 'master' branch into the 'develop' branch . . .");
+                var mergeResultUrl = await MergeBranch("master", "develop");
+                string mergeLog;
+
+                // If the merge result URL is null or empty, something went wrong like a merge conflict
+                if (string.IsNullOrEmpty(mergeResultUrl))
+                {
+                    mergeLog = "Something went wrong merging the 'master' branch into the 'develop' branch.";
+                    mergeLog += $"{Environment.NewLine}{ConsoleTab}There most likely was a merge conflict.";
+                    mergeLog += $"{Environment.NewLine}{ConsoleTab}Manually resolve the merge conflict and merge the 'master' branch into the 'develop' branch.";
+                    Log.Warning(mergeLog);
+                }
+                else
+                {
+                    mergeLog = $"The 'master' branch has been merged into the 'develop' branch.";
+                    mergeLog += $"{Environment.NewLine}{ConsoleTab}To view the merge result, go here 👉🏼 {mergeResultUrl}";
+                    Log.Information(mergeLog);
+                }
             }
             catch (Exception e)
             {
