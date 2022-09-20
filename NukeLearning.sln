@@ -12,9 +12,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\build-status-check.yml = .github\workflows\build-status-check.yml
 		.github\workflows\unit-test-status-check.yml = .github\workflows\unit-test-status-check.yml
-		.github\workflows\valid-version-status-check.yml = .github\workflows\valid-version-status-check.yml
-		.github\workflows\no-github-release-status-check.yml = .github\workflows\no-github-release-status-check.yml
-		.github\workflows\milestone-state-status-check.yml = .github\workflows\milestone-state-status-check.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NukeLearningTests", "Testing\NukeLearningTests\NukeLearningTests.csproj", "{11932E5D-6F27-4C6D-AB24-8DF9E9403C6C}"

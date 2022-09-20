@@ -689,7 +689,7 @@ public partial class CICD // Requirements
 
         if (milestoneExists is false)
         {
-            const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
+            var milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
             var errorMsg = $"The milestone for version '{projectVersion}' does not exist.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);
@@ -725,7 +725,7 @@ public partial class CICD // Requirements
 
         if (milestone is null)
         {
-            const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
+            var milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
             var errorMsg = $"The milestone for version '{projectVersion}' does not exist.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);
@@ -735,7 +735,7 @@ public partial class CICD // Requirements
 
         if (totalMilestoneIssues == 0)
         {
-            const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
+            var milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
             var errorMsg = $"The milestone for version '{projectVersion}' does not contain any issues or pull requests.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}Add some issues to the milestone";
             errors.Add(errorMsg);
@@ -776,7 +776,7 @@ public partial class CICD // Requirements
 
         if (milestone is null)
         {
-            const string milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
+            var milestoneUrl = $"https://github.com/{Owner}/{MainProjName}/milestones/new";
             var errorMsg = "Cannot check a milestone that does not exist.";
             errorMsg += $"{Environment.NewLine}{ConsoleTab}To create a milestone, go here 👉🏼 {milestoneUrl}";
             errors.Add(errorMsg);

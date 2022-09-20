@@ -89,9 +89,12 @@ public partial class CICD // Release.Production
                 Log.Information(nugetReleaseLog);
 
                 // Tweet about release
-                Log.Information("✅Announcing release on twitter . . .");
-                SendReleaseTweet(tweetTemplatePath, version);
-                Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+                if (AnnounceOnTwitter)
+                {
+                    Log.Information("✅Announcing release on twitter . . .");
+                    SendReleaseTweet(tweetTemplatePath, version);
+                    Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+                }
 
                 // Merge the master branch into the develop branch
                 Log.Information("✅Merging 'master' branch into the 'develop' branch . . .");

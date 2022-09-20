@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using GlobExpressions;
 using Nuke.Common;
 using Nuke.Common.Tools.DotNet;
+using NukeLearningCICD.Services;
 using Octokit;
 using Serilog;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
@@ -317,7 +318,7 @@ public partial class CICD // Common
         var projectVersion = project?.GetVersion() ?? string.Empty;
 
         // TODO: This package name might be the owner.reponame.  It could be something different entirely
-        const string packageName = MainProjName;
+        var packageName = MainProjName;
         var nugetService = new NugetDataService();
 
         var packageVersions = nugetService.GetNugetVersions(packageName).Result;

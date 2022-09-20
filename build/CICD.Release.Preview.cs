@@ -86,10 +86,13 @@ public partial class CICD // Release.Preview
                 nugetReleaseLog += $"To view the nuget package, go here 👉🏼 {nugetUrl}";
                 Log.Information(nugetReleaseLog);
 
-                // Tweet about release
-                Log.Information("✅Announcing release on twitter . . .");
-                SendReleaseTweet(tweetTemplatePath, version);
-                Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+                // Tweet about release if enabled
+                if (AnnounceOnTwitter)
+                {
+                    Log.Information("✅Announcing release on twitter . . .");
+                    SendReleaseTweet(tweetTemplatePath, version);
+                    Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+                }
             }
             catch (Exception e)
             {

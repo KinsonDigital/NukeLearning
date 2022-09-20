@@ -139,6 +139,14 @@ public partial class CICD // StatusChecks
         });
 
 
+    Target GenerateSettingsFile => _ => _
+        .Executes(() =>
+        {
+            var buildSettingsService = new BuildSettingsService();
+            buildSettingsService.CreateDefaultBuildSettingsFile();
+        });
+
+
     async Task ValidateBranchForStatusCheck()
     {
         var validBranch = false;

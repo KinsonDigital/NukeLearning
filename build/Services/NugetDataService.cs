@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using NukeLearningCICD.Models;
 using RestSharp;
 
-namespace NukeLearningCICD;
+namespace NukeLearningCICD.Services;
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]

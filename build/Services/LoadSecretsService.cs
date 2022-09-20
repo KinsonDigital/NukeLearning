@@ -6,12 +6,12 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 
-namespace NukeLearningCICD;
+namespace NukeLearningCICD.Services;
 
 public class LoadSecretsService
 {
     private const string SecretFileName = "local-secrets.json";
-    private string ExecutionPath = @$"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\";
+    private string ExecutionPath = @$"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}/";
     private string rootRepoDirPath = string.Empty;
 
     public LoadSecretsService()
@@ -47,16 +47,7 @@ public class LoadSecretsService
         var secretFilePath = $"{this.rootRepoDirPath}/.github/{SecretFileName}";
         var jsonData = File.ReadAllText(secretFilePath);
 
-        KeyValuePair<string, string>[] secrets = Array.Empty<KeyValuePair<string, string>>();
-
-        try
-        {
-            secrets = JsonSerializer.Deserialize<KeyValuePair<string, string>[]>(jsonData);
-        }
-        catch (Exception e)
-        {
-            Debugger.Break();
-        }
+        var secrets = JsonSerializer.Deserialize<KeyValuePair<string, string>[]>(jsonData);
 
         var foundSecret = (from s in secrets
             where s.Key == secretName
