@@ -1,3 +1,4 @@
+using System;
 using Nuke.Common;
 using Nuke.Common.Tools.DotNet;
 using Serilog;
@@ -9,33 +10,54 @@ public partial class CICD // Common.Build
 {
     Target BuildAllProjects => _ => _
         .DependsOn(RestoreSolution)
-        .Before(BuildMainProject, BuildTestProject)
-        .Triggers(BuildMainProject, BuildTestProject)
         .Executes(() =>
         {
-            Log.Information($"⚙️Building All Projects");
+            Log.Information($"✅ Building All Projects ✅");
+            BuildProjects(ProjectTypes.All);
         });
 
-    Target BuildMainProject => _ => _
+    Target BuildAllRegularProjects => _ => _
         .DependsOn(RestoreSolution)
-        .After(BuildAllProjects)
         .Executes(() =>
         {
-            DotNetBuild(s => s
-                .SetProjectFile(MainProjPath)
-                .SetConfiguration(Configuration)
-                .EnableNoRestore());
+            Log.Information($"✅ Building All Regular Projects ✅");
+            BuildProjects(ProjectTypes.Regular);
         });
 
-    Target BuildTestProject => _ => _
+    Target BuildAllTestProjects => _ => _
         .DependsOn(RestoreSolution)
-        .Before(RunUnitTests)
-        .After(BuildAllProjects)
         .Executes(() =>
         {
-            DotNetBuild(s => s
-                .SetProjectFile(TestProjPath)
-                .SetConfiguration(Configuration)
-                .EnableNoRestore());
+            Log.Information($"✅ Building All Test Projects ✅");
+            BuildProjects(ProjectTypes.Test);
         });
+
+    private void BuildProjects(ProjectTypes projectTypes)
+    {
+        var projects = Solution.AllProjects;
+
+        foreach (var project in projects)
+        {
+            if (project.Path.Name == "_build.csproj")
+            {
+                continue;
+            }
+
+            var runnable = projectTypes switch
+            {
+                ProjectTypes.Regular => project.Path.Name.EndsWith("Tests.csproj") is false,
+                ProjectTypes.Test => project.Path.Name.EndsWith("Tests.csproj"),
+                ProjectTypes.All => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(projectTypes), projectTypes, null),
+            };
+
+            if (runnable)
+            {
+                DotNetBuild(s => s
+                    .SetProjectFile(project.Path)
+                    .SetConfiguration(Configuration)
+                    .EnableNoRestore());
+            }
+        }
+    }
 }

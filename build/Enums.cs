@@ -3,5 +3,31 @@ namespace NukeLearningCICD;
 public enum ReleaseType
 {
     Production,
-    Preview
+    Preview,
+    HotFix,
+}
+
+public enum BranchType
+{
+    Master,
+    Develop,
+    Feature,
+    PreviewFeature,
+    Release,
+    Preview,
+    HotFix,
+    Other,
+}
+
+public enum ItemType
+{
+    Issue,
+    PullRequest,
+}
+
+public enum ProjectTypes
+{
+    Regular,
+    Test,
+    All,
 }

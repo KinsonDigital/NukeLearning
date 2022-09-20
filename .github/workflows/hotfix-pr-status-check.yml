@@ -1,24 +1,23 @@
-name: ✅Build Status Check
+name: ✅Hot Fix PR Status Check
 
 
 on:
   workflow_dispatch:
   pull_request:
     branches:
-      - develop
-      - preview/v*.*.*-preview.*
-      - release/v*.*.*
       - master
+
 
 # TODO: Needs to run on windows and ubuntu
 
 jobs:
   build_project:
-    name: Build Project
+    if: contains(github.ref, 'refs/pull') && startsWith(github.head_ref, 'hotfix/')
+    name: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Run Build Status Check
-      run: ./build.cmd BuildStatusCheck
+      run: ./build.cmd HotFixPRStatusCheck
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

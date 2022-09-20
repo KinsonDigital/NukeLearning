@@ -1,0 +1,17 @@
+name: Debug Workflow
+
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  debug_workflow:
+    name: ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Preview Release
+      run: ./build.cmd DebugTask
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -20,10 +20,6 @@
         "GitHubClient": {
           "type": "string"
         },
-        "GitHubToken": {
-          "type": "string",
-          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
-        },
         "Help": {
           "type": "boolean",
           "description": "Shows the help text for this build assembly"
@@ -53,7 +49,7 @@
           "type": "boolean",
           "description": "Disables displaying the NUKE logo"
         },
-        "NuGetApiKey": {
+        "NugetOrgApiKey": {
           "type": "string",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
@@ -72,9 +68,6 @@
             "type": "string"
           }
         },
-        "PullRequestType": {
-          "type": "string"
-        },
         "Root": {
           "type": "string",
           "description": "Root directory during build execution"
@@ -86,27 +79,21 @@
             "type": "string",
             "enum": [
               "BuildAllProjects",
-              "BuildMainProject",
+              "BuildAllRegularProjects",
+              "BuildAllTestProjects",
               "BuildStatusCheck",
-              "BuildTestProject",
-              "CreateGitHubRelease",
-              "CreateNugetPackage",
               "DebugTask",
-              "MilestoneExistsStatusCheck",
-              "MilestoneStateStatusCheck",
-              "NoGitHubReleaseStatusCheck",
-              "PublishNugetPackage",
-              "ReleaseNotesExistStatusCheck",
+              "FeaturePRStatusCheck",
+              "HotFixPRStatusCheck",
+              "PreviewFeaturePRStatusCheck",
+              "PrevReleasePRStatusCheck",
+              "ProdReleasePRStatusCheck",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
-              "RunUnitTests",
+              "RunProductionRelease",
               "SendTweetAnnouncement",
-              "TagDoesNotExistStatusCheck",
-              "UnitTestStatusCheck",
-              "ValidFeaturePRStatusCheck",
-              "ValidPreviewBranchVersionStatusCheck",
-              "ValidVersionStatusCheck"
+              "UnitTestStatusCheck"
             ]
           }
         },
@@ -121,27 +108,21 @@
             "type": "string",
             "enum": [
               "BuildAllProjects",
-              "BuildMainProject",
+              "BuildAllRegularProjects",
+              "BuildAllTestProjects",
               "BuildStatusCheck",
-              "BuildTestProject",
-              "CreateGitHubRelease",
-              "CreateNugetPackage",
               "DebugTask",
-              "MilestoneExistsStatusCheck",
-              "MilestoneStateStatusCheck",
-              "NoGitHubReleaseStatusCheck",
-              "PublishNugetPackage",
-              "ReleaseNotesExistStatusCheck",
+              "FeaturePRStatusCheck",
+              "HotFixPRStatusCheck",
+              "PreviewFeaturePRStatusCheck",
+              "PrevReleasePRStatusCheck",
+              "ProdReleasePRStatusCheck",
               "RestoreSolution",
               "RunAllUnitTests",
               "RunPreviewRelease",
-              "RunUnitTests",
+              "RunProductionRelease",
               "SendTweetAnnouncement",
-              "TagDoesNotExistStatusCheck",
-              "UnitTestStatusCheck",
-              "ValidFeaturePRStatusCheck",
-              "ValidPreviewBranchVersionStatusCheck",
-              "ValidVersionStatusCheck"
+              "UnitTestStatusCheck"
             ]
           }
         },
@@ -153,11 +134,11 @@
           "type": "string",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
-        "TwitterConsumerKey": {
+        "TwitterConsumerApiKey": {
           "type": "string",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
-        "TwitterConsumerSecret": {
+        "TwitterConsumerApiSecret": {
           "type": "string",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },

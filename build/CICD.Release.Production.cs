@@ -4,9 +4,9 @@ using Serilog;
 
 namespace NukeLearningCICD;
 
-public partial class CICD // Release.Preview
+public partial class CICD // Release.Production
 {
-    Target RunPreviewRelease => _ => _
+    Target RunProductionRelease => _ => _
         .Requires(
             () => ThatThisIsExecutedManually(BranchType.Release),
             () => ThatTheCurrentBranchIsCorrect(BranchType.Release),
@@ -23,6 +23,8 @@ public partial class CICD // Release.Preview
             () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Preview, ItemType.PullRequest),
             () => ThatTheReleaseNotesExist(ReleaseType.Preview),
             () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Preview),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseSection(),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseItems(),
             () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Preview),
             () => ThatGitHubReleaseDoesNotExist(ReleaseType.Preview),
             () => NugetPackageDoesNotExist()
@@ -43,13 +45,14 @@ public partial class CICD // Release.Preview
                 Assert.Fail("Release failed.  Could not get version information.");
             }
 
-            Log.Information($"🚀 Starting preview release process for version '{version}' 🚀");
+            Log.Information($"🚀 Starting production release process for version '{version}' 🚀");
 
             try
             {
                 // Create a GitHub release
-                var releaseUrl = await CreateNewGitHubRelease(ReleaseType.Preview, version);
-                var githubReleaseLog = $"The GitHub preview release for version '{version}' was successful!!🚀";
+                Log.Information("✅Creating new GitHub release . . .");
+                var releaseUrl = await CreateNewGitHubRelease(ReleaseType.Production, version);
+                var githubReleaseLog = $"The GitHub production release for version '{version}' was successful!!🚀";
                 githubReleaseLog += $"{Environment.NewLine}{ConsoleTab}To view the release, go here 👉🏼 {releaseUrl}{Environment.NewLine}";
                 Log.Information(githubReleaseLog);
 
@@ -63,7 +66,7 @@ public partial class CICD // Release.Preview
 
                 // Update the milestone description
                 Log.Information($"✅Updating description for milestone '{version}' . . .");
-                var description = $"Container for holding everything released in version {version}";
+                var description = await GetProdMilestoneDescription(version);
                 var updatedMilestone = await milestoneClient.UpdateMilestoneDescription(Owner, MainProjName, version, description);
                 var updateMsg = $"The GitHub Milestone '{version}' description has been updated.";
                 updateMsg += $"{Environment.NewLine}{ConsoleTab}To view the milestone, go here 👉🏼 {updatedMilestone.HtmlUrl}{Environment.NewLine}";
@@ -78,18 +81,25 @@ public partial class CICD // Release.Preview
                 CreateNugetPackage();
                 Log.Information($"Nuget package created at location '{nugetPath}'{Environment.NewLine}");
 
-                // Publish nuget package to nuget.org
-                Log.Information("✅Publishing nuget package to nuget.org . . .");
-                var nugetUrl = $"https://www.nuget.org/packages/{Owner}.{MainProjName}/{version.TrimStart('v')}";
-                PublishNugetPackage();
-                var nugetReleaseLog = "Nuget package published!!🚀";
-                nugetReleaseLog += $"To view the nuget package, go here 👉🏼 {nugetUrl}";
-                Log.Information(nugetReleaseLog);
-
-                // Tweet about release
-                Log.Information("✅Announcing release on twitter . . .");
-                SendReleaseTweet(tweetTemplatePath, version);
-                Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+                // // Publish nuget package to nuget.org
+                // Log.Information("✅Publishing nuget package to nuget.org . . .");
+                // var nugetUrl = $"https://www.nuget.org/packages/{Owner}.{MainProjName}/{version.TrimStart('v')}";
+                // PublishNugetPackage();
+                // var nugetReleaseLog = "Nuget package published!!🚀";
+                // nugetReleaseLog += $"To view the nuget package, go here 👉🏼 {nugetUrl}";
+                // Log.Information(nugetReleaseLog);
+                //
+                // // Tweet about release
+                // Log.Information("✅Announcing release on twitter . . .");
+                // SendReleaseTweet(tweetTemplatePath, version);
+                // Log.Information($"Twitter announcement complete!!{Environment.NewLine}");
+                //
+                // // Merge the master branch into the develop branch
+                // Log.Information("✅Merging 'master' branch into the 'develop' branch . . .");
+                // var mergeResultUrl = await MergeBranch("master", "develop");
+                // var mergeLog = $"The 'master' branch has been merged into the 'develop' branch.";
+                // mergeLog += $"{Environment.NewLine}{ConsoleTab}To view the merge result, go here 👉🏼 {mergeResultUrl}";
+                // Log.Information(mergeLog);
             }
             catch (Exception e)
             {
