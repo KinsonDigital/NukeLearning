@@ -87,12 +87,12 @@
               "GenerateSettingsFile",
               "HotFixPRStatusCheck",
               "PreviewFeaturePRStatusCheck",
+              "PreviewRelease",
               "PrevReleasePRStatusCheck",
               "ProdReleasePRStatusCheck",
+              "ProductionRelease",
               "RestoreSolution",
               "RunAllUnitTests",
-              "RunPreviewRelease",
-              "RunProductionRelease",
               "SendTweetAnnouncement",
               "UnitTestStatusCheck"
             ]
@@ -117,12 +117,12 @@
               "GenerateSettingsFile",
               "HotFixPRStatusCheck",
               "PreviewFeaturePRStatusCheck",
+              "PreviewRelease",
               "PrevReleasePRStatusCheck",
               "ProdReleasePRStatusCheck",
+              "ProductionRelease",
               "RestoreSolution",
               "RunAllUnitTests",
-              "RunPreviewRelease",
-              "RunProductionRelease",
               "SendTweetAnnouncement",
               "UnitTestStatusCheck"
             ]

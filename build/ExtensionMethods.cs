@@ -21,13 +21,106 @@ namespace NukeLearningCICD;
 public static class ExtensionMethods
 {
     private static readonly char[] Digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', };
+
     private static readonly char[] UpperCaseLetters =
     {
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
         'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
     };
+    private static readonly char[] LowerCaseLetters =
+    {
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+    };
+
+    private static readonly char[] SnakableCharacters = { ' ', '-' };
+
     private const char MatchNumbers = '#';
     private const char MatchAnything = '*';
+
+    public static string AddIndents(this string value, int count, bool addBefore = true)
+    {
+        var tabs = string.Empty;
+
+        for (var i = 0; i < count; i++)
+        {
+            tabs += "  ";
+        }
+
+        return addBefore ? $"{tabs}{value}" : $"{value}{tabs}";
+    }
+
+    public static string AddNewLine(this string value, int count, bool addAfter = true)
+    {
+        var newLines = string.Empty;
+
+        for (var i = 0; i < count; i++)
+        {
+            newLines += Environment.NewLine;
+        }
+
+        return addAfter ? $"{value}{newLines}" : $"{newLines}{value}";
+    }
+
+    public static string ToSnakeCase(this string value)
+    {
+        var allUpperCase = value.All(c => UpperCaseLetters.Contains(c));
+        var allLowerCase = value.All(c => LowerCaseLetters.Contains(c));
+        var noSpaces = value.All(c => c != ' ');
+        if (string.IsNullOrEmpty(value) ||
+            (noSpaces && (allUpperCase || allLowerCase)))
+        {
+            return value;
+        }
+
+        value = value.Trim();
+        return value.Replace(" ", "_").Replace("-", "_").ToLower();
+    }
+
+    public static string ToPascalCase(this string value)
+    {
+        /*
+         * Build Project
+         * BuildProject
+         * Build-Project
+         * Build_Project
+         * build project
+         */
+        var allUpperCase = value.All(c => UpperCaseLetters.Contains(c));
+        var allLowerCase = value.All(c => LowerCaseLetters.Contains(c));
+        var noSpaces = value.All(c => c != ' ');
+        if (string.IsNullOrEmpty(value) ||
+            (noSpaces && (allUpperCase || allLowerCase)))
+        {
+            return value;
+        }
+
+        var characters = value.ToArray();
+
+        for (var i = 0; i < characters.Length; i++)
+        {
+            if (i == 0)
+            {
+                characters[i] = LowerCaseLetters.Contains(characters[i])
+                    ? characters[i].ToString().ToUpper()[0]
+                    : characters[i];
+                continue;
+            }
+
+            var current = characters[i];
+            var previous = characters[i >= 1 ? i - 1 : i];
+
+            if (LowerCaseLetters.Contains(current) && previous == ' ')
+            {
+                characters[i] = current.ToString().ToUpper()[0];
+            }
+        }
+
+        return string.Join("", characters)
+            .Replace("-", " ")
+            .Replace("_", " ")
+            .ToSpaceDelimitedSections();
+    }
 
     public static void LogRequirementTitle(this string requirementName, string value)
     {
@@ -99,7 +192,7 @@ public static class ExtensionMethods
                 : character.ToString();
         }
 
-        return result;
+        return result.Replace("    ", " ").Replace("   ", " ").Replace("  ", " ");
     }
 
     public static bool IsProductionVersion(this string value) => EqualTo(value, "v#.#.#") || EqualTo(value, "#.#.#");

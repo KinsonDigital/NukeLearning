@@ -5,6 +5,8 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Nuke.Common;
+using Nuke.Common.CI.GitHubActions;
+using NukeLearningCICD.Services;
 using Octokit;
 using Serilog;
 
@@ -12,7 +14,7 @@ namespace NukeLearningCICD;
 
 public partial class CICD // StatusChecks
 {
-    Target BuildStatusCheck => _ => _
+    public Target BuildStatusCheck => _ => _
         .Before(BuildAllProjects)
         .Triggers(BuildAllProjects)
         .Executes(async () =>
@@ -136,6 +138,10 @@ public partial class CICD // StatusChecks
     Target DebugTask => _ => _
         .Executes(async () =>
         {
+            var service = new WorkflowService();
+
+            // var buildStatusCheckWorkflow = service.CreateBuildStatusCheckWorkflow();
+            var prodReleaseWorkflow = service.CreateProdReleaseCheckWorkflow();
         });
 
 

@@ -13,8 +13,8 @@ jobs:
     name: Preview Release PR Status Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Preview Release PR Status Check
-        run: ./build.cmd PrevReleasePRStatusCheck
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v2
+    - name: Run Preview Release PR Status Check
+      run: ./build.cmd PrevReleasePRStatusCheck
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

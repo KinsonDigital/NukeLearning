@@ -6,7 +6,7 @@ namespace NukeLearningCICD;
 
 public partial class CICD // Release.Production
 {
-    Target RunProductionRelease => _ => _
+    public Target ProductionRelease => _ => _
         .Requires(
             () => ThatThisIsExecutedManually(BranchType.Master),
             () => ThatTheCurrentBranchIsCorrect(BranchType.Master),

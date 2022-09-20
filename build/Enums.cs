@@ -31,3 +31,9 @@ public enum ProjectTypes
     Test,
     All,
 }
+
+public enum WorkflowType
+{
+    StatusCheck,
+    Release,
+}

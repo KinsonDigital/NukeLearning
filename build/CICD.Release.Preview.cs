@@ -6,7 +6,7 @@ namespace NukeLearningCICD;
 
 public partial class CICD // Release.Preview
 {
-    Target RunPreviewRelease => _ => _
+    public Target PreviewRelease => _ => _
         .Requires(
             () => ThatThisIsExecutedManually(BranchType.Release),
             () => ThatTheCurrentBranchIsCorrect(BranchType.Release),
