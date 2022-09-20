@@ -247,6 +247,7 @@ public partial class CICD // Common
             Name = $"🚀{releaseType} Release - {version}",
             Body = releaseNotes,
             Prerelease = releaseType == ReleaseType.Preview,
+            Draft = false,
             TargetCommitish = Repo.Commit,
         };
 

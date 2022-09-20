@@ -867,12 +867,15 @@ public partial class CICD // Requirements
         }
 
         var projectVersion = project?.GetVersion() ?? string.Empty;
+        projectVersion = projectVersion.StartsWith('v')
+            ? projectVersion
+            : $"v{projectVersion}";
 
-        var milestoneUrl = GitHubClient.Issue.Milestone.GetHtmlUrl(Owner, MainProjName, $"v{projectVersion}").Result;
+        var milestoneUrl = GitHubClient.Issue.Milestone.GetHtmlUrl(Owner, MainProjName, projectVersion).Result;
 
-        var openMilestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, $"v{projectVersion}")
+        var openMilestoneIssues = GitHubClient.Issue.IssuesForMilestone(Owner, MainProjName, projectVersion)
             .Result
-            .Where(i => !i.IsReleaseToDoIssue(releaseType) && i.State == ItemState.Open).ToArray();
+            .Where(i => (skipReleaseToDoIssues || i.IsReleaseToDoIssue(releaseType)) && i.State == ItemState.Open).ToArray();
 
         if (openMilestoneIssues.Length > 0)
         {
@@ -911,7 +914,7 @@ public partial class CICD // Requirements
 
         var openMilestonePullRequests = GitHubClient.Issue.PullRequestsForMilestone(Owner, MainProjName, $"v{projectVersion}")
             .Result
-            .Where(i => !i.IsReleasePullRequest(releaseType) && i.State == ItemState.Open).ToArray();
+            .Where(i => (skipReleaseToDoPullRequests || i.IsReleasePullRequest(releaseType)) && i.State == ItemState.Open).ToArray();
 
         if (openMilestonePullRequests.Length > 0)
         {

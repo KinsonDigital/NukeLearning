@@ -691,7 +691,8 @@ public static class ExtensionMethods
         string milestoneName,
         string description)
     {
-        var milestones = await client.GetAllForRepository(owner, repoName);
+        var request = new MilestoneRequest() { State = ItemStateFilter.All };
+        var milestones = await client.GetAllForRepository(owner, repoName, request);
 
         var foundMilestone = milestones.FirstOrDefault(m => m.Title == milestoneName);
 
