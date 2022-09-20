@@ -143,6 +143,8 @@
 - [ ] Check that all pull requests in a milestone have a label
 - [ ] Check that the release notes exist.  (Not prev release notes)
 - [ ] Check that the release notes contain at least one issue number for each issue in the milestone
+- [ ] Check that the release notes contain a preview release section if preview releases exist
+- [ ] Check that the release notes section contains a preview release item for each previous preview release if they exist
 - [ ] GitHub release does not exist yet
 - [ ] Nuget package release does not exist yet
 - [ ] Builds execute - (TRIGGERS AFTER REQUIRES ALL PASS)

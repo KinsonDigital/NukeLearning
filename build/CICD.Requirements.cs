@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nuke.Common;
+using Nuke.Common.Tooling;
 using Octokit;
 using Serilog;
 
@@ -334,7 +335,7 @@ public partial class CICD // Requirements
         var isValidBranch = false;
 
         nameof(ThatThePRSourceBranchIsValid)
-            .LogRequirementTitle("ValidatingPull RequestSource Branch:");
+            .LogRequirementTitle("Validating Pull Request Source Branch:");
 
         validMsg += $"{Environment.NewLine}{ConsoleTab}✅The '{branchType}' branch '{sourceBranch}' is valid.";
         var branchTypeStr = branchType.ToString().ToSpaceDelimitedSections().ToLower();
@@ -1195,6 +1196,150 @@ public partial class CICD // Requirements
         }
 
         errors.PrintErrors($"The {releaseTypeStr} release notes is missing notes for 1 ore more issues.");
+
+        return false;
+    }
+
+    bool ThatTheProdReleaseNotesContainsPreviewReleaseSection()
+    {
+        var project = Solution.GetProject(MainProjName);
+        var errors = new List<string>();
+
+        nameof(ThatTheProdReleaseNotesContainsPreviewReleaseSection)
+            .LogRequirementTitle($"Checking if the 'production' release notes contains a preview releases section if required.");
+
+        if (project is null)
+        {
+            errors.Add($"Could not find the project '{MainProjName}'");
+        }
+
+        var prodVersion = project?.GetVersion() ?? string.Empty;
+        prodVersion = $"v{prodVersion}";
+        var isProdVersion = prodVersion.IsProductionVersion();
+
+        if (isProdVersion is false)
+        {
+            var errorMsg = $"The version '{prodVersion}' must be a production version.";
+            errors.Add(errorMsg);
+        }
+
+        var containsPreviewReleases = isProdVersion && ProdVersionHasPreviewReleases(prodVersion).Result;
+
+        if (containsPreviewReleases)
+        {
+            var releaseNotes = Solution.GetReleaseNotes(ReleaseType.Production, prodVersion);
+
+            if (string.IsNullOrEmpty(releaseNotes))
+            {
+                const string notesDirPath = $"~/Documentation/ReleaseNotes/ProductionReleases";
+                var errorMsg = $"The production release notes do not exist for version {prodVersion}";
+                var notesFileName = $"Release-Notes-{prodVersion}.md";
+                errorMsg += $"{Environment.NewLine}{ConsoleTab}The production release notes go in the directory '{notesDirPath}'";
+                errorMsg += $"{Environment.NewLine}{ConsoleTab}The production release notes file name should be '{notesFileName}'.";
+                errors.Add(errorMsg);
+            }
+            else
+            {
+                const string previewReleaseSection = "<h2 style=\"font-weight:bold\" align=\"center\">Preview Releases 🚀</h2>";
+
+                if (releaseNotes.Contains(previewReleaseSection) is false)
+                {
+                    var errorMsg = $"The production release '{prodVersion}' release notes does not contain a preview release section.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}This section is required if the production release contains previous preview releases.";
+                    errorMsg += $"{Environment.NewLine}{ConsoleTab}Expected Section: {previewReleaseSection}";
+
+                    errors.Add(errorMsg);
+                }
+            }
+        }
+
+        if (errors.Count <= 0)
+        {
+            Log.Information("Release notes check for preview release content complete.");
+            return true;
+        }
+
+        errors.PrintErrors();
+
+        return false;
+    }
+
+    bool ThatTheProdReleaseNotesContainsPreviewReleaseItems()
+    {
+        var project = Solution.GetProject(MainProjName);
+        var errors = new List<string>();
+
+        nameof(ThatTheProdReleaseNotesContainsPreviewReleaseSection)
+            .LogRequirementTitle($"Checking if the 'production' release notes contains a preview releases section if required.");
+
+        if (project is null)
+        {
+            errors.Add($"Could not find the project '{MainProjName}'");
+        }
+
+        var prodVersion = project?.GetVersion() ?? string.Empty;
+        prodVersion = $"v{prodVersion}";
+        var isProdVersion = prodVersion.IsProductionVersion();
+
+        if (isProdVersion is false)
+        {
+            var errorMsg = $"The version '{prodVersion}' must be a production version.";
+            errors.Add(errorMsg);
+        }
+
+        var containsPreviewReleases = isProdVersion && ProdVersionHasPreviewReleases(prodVersion).Result;
+
+        if (containsPreviewReleases)
+        {
+            var releaseNotes = Solution.GetReleaseNotes(ReleaseType.Production, prodVersion);
+
+            if (string.IsNullOrEmpty(releaseNotes))
+            {
+                const string notesDirPath = $"~/Documentation/ReleaseNotes/ProductionReleases";
+                var errorMsg = $"The production release notes do not exist for version {prodVersion}";
+                var notesFileName = $"Release-Notes-{prodVersion}.md";
+                errorMsg += $"{Environment.NewLine}{ConsoleTab}The production release notes go in the directory '{notesDirPath}'";
+                errorMsg += $"{Environment.NewLine}{ConsoleTab}The production release notes file name should be '{notesFileName}'.";
+                errors.Add(errorMsg);
+            }
+            else
+            {
+                var milestoneRequest = new MilestoneRequest();
+                milestoneRequest.State = ItemStateFilter.All;
+
+                var prevReleaseItems =
+                    (from m in GitHubClient.Issue.Milestone.GetAllForRepository(Owner, MainProjName, milestoneRequest).Result
+                    where m.Title.IsPreviewVersion() && m.Title.StartsWith(prodVersion)
+                    select (
+                        m.Title,
+                        prevReleaseItem: $"[Preview Release {m.Title}]({m.HtmlUrl}) - Issues from preview release."
+                        )).ToArray();
+
+                // Check if any of the preview release items do not exist
+                var itemsThatDoNotExist =
+                    prevReleaseItems.Where(m => releaseNotes.Contains(m.prevReleaseItem) is false).ToArray();
+
+                if (itemsThatDoNotExist.Length > 0)
+                {
+                    const string milestoneUrl = "https://github.com/<owner>/<repo-name>/milestone/<milestone-number>";
+                    errors.Add($"Preview Release Item Syntax: [Preview Release <preview-version>]({milestoneUrl}) - Issues from preview release.");
+                }
+
+                // Add errors for each item that does not exist
+                foreach (var item in itemsThatDoNotExist)
+                {
+                    errors.Add($"The preview release item for preview release '{item.Title}' is missing.");
+                }
+            }
+        }
+
+        if (errors.Count <= 0)
+        {
+            Log.Information("Release notes check for preview release items complete.");
+            return true;
+        }
+
+        errors.PrintErrors();
 
         return false;
     }

@@ -124,6 +124,8 @@ public partial class CICD // StatusChecks
             () => ThatTheReleaseMilestoneOnlyContainsSingle(ReleaseType.Production, ItemType.PullRequest),
             () => ThatTheReleaseNotesExist(ReleaseType.Production),
             () => ThatTheReleaseNotesTitleIsCorrect(ReleaseType.Production),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseSection(),
+            () => ThatTheProdReleaseNotesContainsPreviewReleaseItems(),
             () => ThatMilestoneIssuesExistInReleaseNotes(ReleaseType.Production),
             () => ThatGitHubReleaseDoesNotExist(ReleaseType.Production),
             () => NugetPackageDoesNotExist()
@@ -133,7 +135,7 @@ public partial class CICD // StatusChecks
     Target DebugTask => _ => _
         .Executes(async () =>
         {
-            var test = await ProdVersionHasPreviewReleases("v1.2.3");
+
 
         });
 

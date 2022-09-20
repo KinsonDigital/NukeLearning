@@ -330,18 +330,23 @@ public partial class CICD // Common
         return mergeResult.HtmlUrl;
     }
 
-    async Task<bool> ProdVersionHasPreviewReleases(string version)
+    async Task<bool> ProdVersionHasPreviewReleases(string prodVersion)
     {
-        if (version.IsPreviewVersion())
+        if (prodVersion.IsProductionVersion() is false)
         {
-            throw new Exception($"The version '{version}' must not be a preview version.");
+            throw new Exception($"The version '{prodVersion}' must not be a preview version.");
         }
 
         var issueClient = GitHubClient.Issue;
         var milestoneClient = issueClient.Milestone;
 
-        var prodContainsPreviewReleases = (await milestoneClient.GetAllForRepository(Owner, MainProjName))
-            .Any(m => m.Title.IsPreviewVersion() is false && m.Title.StartsWith(version));
+        var milestoneRequest = new MilestoneRequest
+        {
+            State = ItemStateFilter.All,
+        };
+
+        var prodContainsPreviewReleases = (await milestoneClient.GetAllForRepository(Owner, MainProjName, milestoneRequest))
+            .Any(m => m.Title.IsPreviewVersion() && m.Title.StartsWith(prodVersion));
 
         return prodContainsPreviewReleases;
     }
@@ -357,7 +362,7 @@ public partial class CICD // Common
         var milestoneClient = issueClient.Milestone;
 
         var milestoneNames = (from m in await milestoneClient.GetAllForRepository(Owner, MainProjName)
-            where m.Title.IsPreviewVersion() is false && m.Title.StartsWith(version)
+            where m.Title.IsPreviewVersion() && m.Title.StartsWith(version)
             select m.Title).ToArray();
 
         var issues = await issueClient.IssuesForMilestones(Owner, MainProjName, milestoneNames);

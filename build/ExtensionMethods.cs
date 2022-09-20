@@ -882,7 +882,7 @@ public static class ExtensionMethods
     /// <remarks>
     ///     The comparison is case sensitive.
     /// </remarks>
-    private static bool EqualTo(string value, string pattern)
+    public static bool EqualTo(this string value, string pattern)
     {
         pattern = string.IsNullOrEmpty(pattern) ? string.Empty : pattern;
 
