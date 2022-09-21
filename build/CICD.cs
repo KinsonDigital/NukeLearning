@@ -81,10 +81,10 @@ public partial class CICD : NukeBuild
 
     [NukeParameter(List = false)] static readonly Configuration Configuration = GetBuildConfig();
     [NukeParameter] [Secret] readonly string NugetOrgApiKey;
-    [NukeParameter] [Secret] readonly string TwitterConsumerApiKey;
-    [NukeParameter] [Secret] readonly string TwitterConsumerApiSecret;
-    [NukeParameter] [Secret] readonly string TwitterAccessToken;
-    [NukeParameter] [Secret] readonly string TwitterAccessTokenSecret;
+    [NukeParameter] [Secret] string TwitterConsumerApiKey { get; set; }
+    [NukeParameter] [Secret] string TwitterConsumerApiSecret { get; set; }
+    [NukeParameter] [Secret] string TwitterAccessToken { get; set; }
+    [NukeParameter] [Secret] string TwitterAccessTokenSecret { get; set; }
 
     static string Owner = string.Empty;
     static string MainProjName = string.Empty;

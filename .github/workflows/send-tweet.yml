@@ -1,0 +1,22 @@
+name: 🐦Send Tweet
+
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  build_project:
+    name: Send Tweet
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Send Tweet
+      run: ./build.cmd SendTweetAnnouncement
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NugetOrgApiKey: ${{ secrets.NUGET_ORG_API_KEY }}
+        TwitterConsumerApiKey: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
+        TwitterConsumerApiSecret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
+        TwitterAccessToken: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+        TwitterAccessTokenSecret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}

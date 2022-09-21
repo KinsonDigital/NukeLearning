@@ -9,6 +9,7 @@ using Nuke.Common.CI.GitHubActions;
 using NukeLearningCICD.Services;
 using Octokit;
 using Serilog;
+using static Nuke.Common.Tools.Twitter.TwitterTasks;
 
 namespace NukeLearningCICD;
 
