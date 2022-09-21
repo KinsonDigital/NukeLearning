@@ -26,24 +26,6 @@ public partial class CICD // Common
         });
 
 
-    Target SendTweetAnnouncement => _ => _
-        .Requires(() => IsServerBuild)
-        .Requires(() => TwitterConsumerApiKey)
-        .Requires(() => TwitterConsumerApiSecret)
-        .Requires(() => TwitterAccessToken)
-        .Requires(() => TwitterAccessTokenSecret)
-        .Executes(async () =>
-        {
-            // Validate that the keys, tokens, and secrets are not null or empty
-            await SendTweetAsync(
-                message: "Hello from NUKE",
-                TwitterConsumerApiKey,
-                TwitterConsumerApiSecret,
-                TwitterAccessToken,
-                TwitterAccessTokenSecret);
-        });
-
-
     void CreateNugetPackage()
     {
         DeleteAllNugetPackages();
